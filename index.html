@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClawCraft - AI Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #e94560;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+        }
+        .game-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 3px;
+            margin: 20px 0;
+            background: #0f0f23;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .cell {
+            aspect-ratio: 1;
+            background: #1a1a3e;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .cell.energy {
+            background: #ffd700;
+            box-shadow: 0 0 10px #ffd700;
+        }
+        .cell.unit {
+            background: #e94560;
+            border: 2px solid #fff;
+        }
+        .cell.base {
+            background: #0f3460;
+            border: 2px solid #e94560;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #e94560;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #ff6b6b;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .info {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .stat {
+            background: rgba(233, 69, 96, 0.2);
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            color: #e94560;
+            font-weight: bold;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+        }
+        .log {
+            background: #0f0f23;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid #1a1a3e;
+        }
+    </style>
+</head>
+<body>
+    <h1>🦞 ClawCraft</h1>
+    <p class="subtitle">AI Strategy Game - Collect Energy, Build, Conquer</p>
+    
+    <div class="game-container">
+        <div class="info">
+            <div class="stat">
+                <div class="stat-value" id="energy">0</div>
+                <div class="stat-label">Energy</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="units">1</div>
+                <div class="stat-label">Units</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="bases">1</div>
+                <div class="stat-label">Bases</div>
+            </div>
+        </div>
+        
+        <div class="grid" id="grid"></div>
+        
+        <div class="controls">
+            <button onclick="move('up')">⬆️ Up</button>
+            <button onclick="move('down')">⬇️ Down</button>
+            <button onclick="move('left')">⬅️ Left</button>
+            <button onclick="move('right')">➡️ Right</button>
+            <button onclick="collect()">⛏️ Collect</button>
+            <button onclick="build()">🏗️ Build</button>
+            <button onclick="spawn()">👤 Spawn Unit</button>
+            <button onclick="reset()">🔄 Reset</button>
+        </div>
+        
+        <div class="log" id="log">
+            <div class="log-entry">Welcome to ClawCraft! Use buttons to control your unit.</div>
+        </div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 10;
+        let grid = [];
+        let unitPos = { x: 0, y: 0 };
+        let energy = 0;
+        let units = 1;
+        let bases = 1;
+        
+        function initGrid() {
+            grid = [];
+            for (let y = 0; y < GRID_SIZE; y++) {
+                let row = [];
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    row.push({
+                        type: Math.random() < 0.15 ? 'energy' : 'empty',
+                        amount: Math.random() < 0.15 ? Math.floor(Math.random() * 50) + 10 : 0
+                    });
+                }
+                grid.push(row);
+            }
+            grid[0][0].type = 'base';
+            unitPos = { x: 0, y: 0 };
+            renderGrid();
+        }
+        
+        function renderGrid() {
+            const gridEl = document.getElementById('grid');
+            gridEl.innerHTML = '';
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (unitPos.x === x && unitPos.y === y) {
+                        cell.classList.add('unit');
+                        cell.textContent = '🤖';
+                    } else if (grid[y][x].type === 'energy') {
+                        cell.classList.add('energy');
+                        cell.textContent = '⚡';
+                    } else if (grid[y][x].type === 'base') {
+                        cell.classList.add('base');
+                        cell.textContent = '🏠';
+                    }
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+        
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.insertBefore(entry, logEl.firstChild);
+        }
+        
+        function move(direction) {
+            let newX = unitPos.x;
+            let newY = unitPos.y;
+            
+            switch(direction) {
+                case 'up': newY--; break;
+                case 'down': newY++; break;
+                case 'left': newX--; break;
+                case 'right': newX++; break;
+            }
+            
+            if (newX >= 0 && newX < GRID_SIZE && newY >= 0 && newY < GRID_SIZE) {
+                unitPos.x = newX;
+                unitPos.y = newY;
+                renderGrid();
+                log(`Moved ${direction} to (${newX}, ${newY})`);
+            } else {
+                log('Cannot move: Out of bounds!');
+            }
+        }
+        
+        function collect() {
+            const cell = grid[unitPos.y][unitPos.x];
+            if (cell.type === 'energy') {
+                energy += cell.amount;
+                cell.type = 'empty';
+                cell.amount = 0;
+                updateStats();
+                renderGrid();
+                log(`Collected ${cell.amount} energy!`);
+            } else {
+                log('No energy here to collect.');
+            }
+        }
+        
+        function build() {
+            if (energy >= 100) {
+                energy -= 100;
+                bases++;
+                updateStats();
+                log('Built a new base! (-100 energy)');
+            } else {
+                log('Not enough energy! Need 100.');
+            }
+        }
+        
+        function spawn() {
+            if (energy >= 50) {
+                energy -= 50;
+                units++;
+                updateStats();
+                log('Spawned a new unit! (-50 energy)');
+            } else {
+                log('Not enough energy! Need 50.');
+            }
+        }
+        
+        function reset() {
+            energy = 0;
+            units = 1;
+            bases = 1;
+            updateStats();
+            initGrid();
+            log('Game reset!');
+        }
+        
+        function updateStats() {
+            document.getElementById('energy').textContent = energy;
+            document.getElementById('units').textContent = units;
+            document.getElementById('bases').textContent = bases;
+        }
+        
+        // Initialize
+        initGrid();
+        updateStats();
+    </script>
+</body>
+</html>
