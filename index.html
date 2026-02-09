@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClawCraft - Full Demo</title>
+    <title>ClawCraft v2</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -11,584 +11,574 @@
             background: #0a0a15;
             color: #fff;
             overflow: hidden;
-            font-size: 13px;
+            font-size: 12px;
         }
-        #gameContainer {
-            display: flex;
-            height: 100vh;
-        }
-        #canvasContainer {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-        }
-        #gameCanvas { cursor: grab; }
+        #gameContainer { display: flex; height: 100vh; }
+        #canvasContainer { flex: 1; position: relative; overflow: hidden; }
+        #gameCanvas { cursor: grab; display: block; }
         #gameCanvas:active { cursor: grabbing; }
         #sidebar {
-            width: 350px;
+            width: 320px;
             background: #1a1a2e;
             border-left: 2px solid #e94560;
-            padding: 15px;
+            padding: 12px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
         }
-        h1 { color: #e94560; font-size: 1.5em; margin-bottom: 10px; }
-        h2 { color: #e94560; font-size: 1.1em; margin-bottom: 8px; }
+        h1 { color: #e94560; font-size: 1.3em; margin-bottom: 8px; }
+        h2 { color: #e94560; font-size: 1em; margin-bottom: 6px; }
         .section {
             background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 6px;
+            padding: 10px;
         }
-        .stat {
+        .stat-row {
             display: flex;
             justify-content: space-between;
-            margin: 5px 0;
-            padding: 6px;
+            margin: 4px 0;
+            padding: 5px 8px;
             background: rgba(0,0,0,0.3);
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
         }
-        .stat-label { color: #888; }
-        .stat-value { color: #fff; font-weight: bold; }
+        .res-bar {
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        .res-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
         button {
-            padding: 8px 12px;
+            padding: 6px 10px;
             border: none;
-            border-radius: 6px;
+            border-radius: 4px;
             background: #e94560;
             color: white;
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
-            transition: all 0.3s;
-            margin: 3px;
+            transition: all 0.2s;
+            margin: 2px;
         }
         button:hover { background: #ff6b6b; }
-        button:disabled { background: #444; cursor: not-allowed; }
+        button:disabled { background: #444; cursor: not-allowed; opacity: 0.6; }
         button.active { background: #4a9; }
-        .btn-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-        .build-btn {
-            background: #2a4a6a;
-            font-size: 11px;
-            padding: 6px 8px;
-        }
-        .build-btn:hover { background: #3a5a8a; }
-        .layer-toggle {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .layer-toggle:hover { background: rgba(233, 69, 96, 0.2); }
-        #tooltip {
-            position: absolute;
-            background: rgba(0,0,0,0.95);
-            border: 1px solid #e94560;
-            padding: 10px;
-            border-radius: 5px;
-            pointer-events: none;
-            display: none;
-            z-index: 1000;
-            font-size: 11px;
-            max-width: 250px;
-        }
-        .unit-list {
-            max-height: 150px;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.3);
-            border-radius: 4px;
-            padding: 5px;
-        }
-        .unit-item {
-            padding: 5px;
-            margin: 3px 0;
-            background: rgba(255,255,255,0.1);
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-        .unit-item:hover { background: rgba(233, 69, 96, 0.3); }
-        .unit-item.selected { background: #e94560; }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 4px; }
+        .mini-btn { padding: 4px 8px; font-size: 10px; background: #2a4a6a; }
+        .mini-btn:hover { background: #3a5a8a; }
+        #hexDetail { font-size: 11px; }
         .log {
-            max-height: 100px;
+            max-height: 80px;
             overflow-y: auto;
-            background: #0f0f23;
-            border-radius: 5px;
-            padding: 8px;
+            background: #0a0a15;
+            border-radius: 4px;
+            padding: 6px;
             font-family: monospace;
             font-size: 10px;
         }
-        .log-entry {
-            padding: 2px 0;
-            border-bottom: 1px solid #1a1a3e;
-        }
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
-        }
-        .module-btn {
+        .log-entry { padding: 2px 0; border-bottom: 1px solid #1a1a2e; }
+        .unit-item {
+            padding: 4px 8px;
+            margin: 2px 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            cursor: pointer;
             font-size: 10px;
-            padding: 5px;
-            background: #3a3a5a;
+            display: flex;
+            justify-content: space-between;
         }
-        .module-btn.selected { background: #4a9; }
-        .cost { color: #fd0; font-size: 10px; }
+        .unit-item:hover { background: rgba(233, 69, 96, 0.3); }
+        .unit-item.selected { background: #e94560; }
+        .hp-bar {
+            width: 60px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .hp-fill {
+            height: 100%;
+            background: #4a9;
+            border-radius: 3px;
+        }
+        .tick { color: #888; font-size: 10px; }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <div id="canvasContainer">
             <canvas id="gameCanvas"></canvas>
-            <div id="tooltip"></div>
         </div>
         <div id="sidebar">
-            <h1>🦞 ClawCraft Demo</h1>
+            <h1>🦞 ClawCraft v2</h1>
             
             <div class="section">
                 <h2>资源</h2>
-                <div class="stat"><span class="stat-label">能量</span><span class="stat-value" id="resEnergy">500</span></div>
-                <div class="stat"><span class="stat-label">黄金</span><span class="stat-value" id="resGold">200</span></div>
-                <div class="stat"><span class="stat-label">单位数</span><span class="stat-value" id="unitCount">0</span></div>
+                <div class="stat-row">
+                    <span>⚡ 能量</span>
+                    <span id="resE">0 / 0</span>
+                </div>
+                <div class="res-bar"><div class="res-fill" id="barE" style="width:0%; background:#fd0;"></div></div>
+                
+                <div class="stat-row" style="margin-top:8px;">
+                    <span>🪙 黄金</span>
+                    <span id="resG">0</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span>👤 单位</span>
+                    <span id="resU">0 / 10</span>
+                </div>
+                
+                <div class="tick" id="tickInfo">Tick: 0 | 生产: +0E/s</div>
             </div>
 
             <div class="section">
                 <h2>选中格子</h2>
-                <div id="hexInfo">点击地图查看</div>
+                <div id="hexDetail">点击地图查看详情</div>
             </div>
 
             <div class="section">
                 <h2>建造</h2>
                 <div class="btn-group">
-                    <button class="build-btn" onclick="game.setBuildMode('command')">指挥中心 100E</button>
-                    <button class="build-btn" onclick="game.setBuildMode('signal')">信号塔 50E</button>
-                    <button class="build-btn" onclick="game.setBuildMode('mine')">地雷 20E</button>
+                    <button class="mini-btn" onclick="game.setBuild('mineE')">能量矿 50E</button>
+                    <button class="mini-btn" onclick="game.setBuild('mineG')">黄金矿 80E</button>
+                    <button class="mini-btn" onclick="game.setBuild('storageE')">能量仓 60E</button>
+                    <button class="mini-btn" onclick="game.setBuild('tower')">防御塔 100E</button>
                 </div>
-                <button onclick="game.cancelBuild()">取消建造</button>
+                <button onclick="game.cancelBuild()" style="margin-top:6px;">取消</button>
             </div>
 
             <div class="section">
-                <h2>单位控制</h2>
-                <div class="unit-list" id="unitList">无单位</div>
-                <div class="btn-group" style="margin-top:10px;">
-                    <button onclick="game.spawnUnit()">生成单位 50E</button>
-                    <button onclick="game.toggleMove()">移动模式</button>
+                <h2>单位</h2>
+                <div id="unitList">无单位</div>
+                <div class="btn-group" style="margin-top:8px;">
+                    <button onclick="game.spawnUnit()">生成 30E</button>
+                    <button onclick="game.toggleMove()">移动</button>
+                    <button onclick="game.toggleGather()">采集</button>
                 </div>
             </div>
 
             <div class="section">
                 <h2>操作</h2>
                 <div class="btn-group">
-                    <button onclick="game.regenerate()">新地图</button>
-                    <button onclick="game.export()">导出</button>
+                    <button onclick="game.speed = game.speed === 1 ? 5 : 1">加速</button>
+                    <button onclick="game.save()">保存</button>
+                    <button onclick="game.load()">加载</button>
+                    <button onclick="game.reset()">重置</button>
                 </div>
             </div>
 
             <div class="section">
                 <h2>日志</h2>
-                <div class="log" id="gameLog"></div>
+                <div class="log" id="log"></div>
             </div>
         </div>
     </div>
 
     <script>
         const CONFIG = {
-            MAP_WIDTH: 20,
-            MAP_HEIGHT: 20,
-            HEX_SIZE: 30,
-            MAX_HEIGHT: 100,
-            SIGNAL_RANGE: 5,
-            START_ENERGY: 500,
-            START_GOLD: 200
+            MAP_W: 20, MAP_H: 20, HEX_SIZE: 28,
+            TICK_RATE: 1000, MAX_UNITS: 10,
+            START_E: 200, START_G: 50, MAX_STORAGE: 1000
         };
 
-        function noise(x, y) {
-            const sin = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
-            return sin - Math.floor(sin);
-        }
-
-        function distance(a, b) {
-            return (Math.abs(a.q - b.q) + Math.abs(a.q + a.r - b.q - b.r) + Math.abs(a.r - b.r)) / 2;
-        }
-
-        class HexGrid {
-            constructor(w, h) {
-                this.width = w;
-                this.height = h;
-                this.cells = [];
-                this.generate();
-            }
-
-            generate() {
-                this.cells = [];
-                for (let q = 0; q < this.width; q++) {
-                    for (let r = 0; r < this.height; r++) {
-                        const h = Math.floor(noise(q * 0.1, r * 0.1) * CONFIG.MAX_HEIGHT);
-                        this.cells.push({
-                            q, r, x: 0, y: 0,
-                            height: Math.max(0, h),
-                            hardness: Math.floor(20 + (h / CONFIG.MAX_HEIGHT) * 60),
-                            energy: Math.random() < 0.15 ? Math.floor(Math.random() * 300) + 50 : 0,
-                            gold: Math.random() < 0.08 ? Math.floor(Math.random() * 100) + 20 : 0,
-                            building: null,
-                            visible: false,
-                            explored: false
-                        });
-                    }
-                }
-            }
-
-            get(q, r) { return this.cells.find(c => c.q === q && c.r === r); }
-        }
+        const BUILDINGS = {
+            mineE: { name: '能量矿', cost: 50, prodE: 5, maxE: 200 },
+            mineG: { name: '黄金矿', cost: 80, prodG: 2, maxG: 100 },
+            storageE: { name: '能量仓', cost: 60, maxE: 500 },
+            tower: { name: '防御塔', cost: 100, attack: 10 }
+        };
 
         class Game {
             constructor() {
-                this.grid = new HexGrid(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT);
                 this.canvas = document.getElementById('gameCanvas');
                 this.ctx = this.canvas.getContext('2d');
                 this.camera = { x: 0, y: 0, zoom: 1 };
-                this.energy = CONFIG.START_ENERGY;
-                this.gold = CONFIG.START_GOLD;
+                this.tick = 0;
+                this.speed = 1;
+                this.paused = false;
+                
+                this.resetData();
+                this.setup();
+                this.start();
+            }
+
+            resetData() {
+                this.energy = CONFIG.START_E;
+                this.maxEnergy = CONFIG.MAX_STORAGE;
+                this.gold = CONFIG.START_G;
                 this.units = [];
                 this.selectedUnit = null;
                 this.buildMode = null;
                 this.moveMode = false;
-                this.commands = [];
+                this.gatherMode = false;
                 
-                this.setupCanvas();
-                this.setupEvents();
-                this.calculatePositions();
-                this.initPlayer();
-                this.startLoop();
-                this.log('游戏开始！点击地图建造');
+                this.grid = [];
+                for (let q = 0; q < CONFIG.MAP_W; q++) {
+                    for (let r = 0; r < CONFIG.MAP_H; r++) {
+                        const n = Math.sin(q * 0.3) * Math.cos(r * 0.3);
+                        this.grid.push({
+                            q, r, x: 0, y: 0,
+                            height: Math.floor((n + 1) * 50),
+                            energy: Math.random() < 0.2 ? Math.floor(Math.random() * 200) : 0,
+                            gold: Math.random() < 0.1 ? Math.floor(Math.random() * 100) : 0,
+                            building: null,
+                            unit: null
+                        });
+                    }
+                }
+                
+                const center = this.get(10, 10);
+                if (center) {
+                    center.building = { type: 'base', name: '基地', storedE: 0 };
+                    this.base = center;
+                }
             }
 
-            setupCanvas() {
+            setup() {
                 const resize = () => {
                     this.canvas.width = this.canvas.parentElement.clientWidth;
                     this.canvas.height = this.canvas.parentElement.clientHeight;
-                    this.render();
                 };
                 window.addEventListener('resize', resize);
                 resize();
-            }
 
-            setupEvents() {
-                let dragging = false, lastPos = { x: 0, y: 0 };
-                
-                this.canvas.addEventListener('mousedown', e => {
-                    dragging = true;
-                    lastPos = { x: e.clientX, y: e.clientY };
-                });
-
+                let drag = false, last = { x: 0, y: 0 };
+                this.canvas.addEventListener('mousedown', e => { drag = true; last = { x: e.clientX, y: e.clientY }; });
                 this.canvas.addEventListener('mousemove', e => {
-                    if (dragging) {
-                        this.camera.x += e.clientX - lastPos.x;
-                        this.camera.y += e.clientY - lastPos.y;
-                        lastPos = { x: e.clientX, y: e.clientY };
-                        this.render();
+                    if (drag) {
+                        this.camera.x += e.clientX - last.x;
+                        this.camera.y += e.clientY - last.y;
+                        last = { x: e.clientX, y: e.clientY };
                     }
                 });
-
-                this.canvas.addEventListener('mouseup', () => dragging = false);
-                
-                this.canvas.addEventListener('click', e => {
-                    if (!dragging) this.handleClick(e);
-                });
-
+                this.canvas.addEventListener('mouseup', () => drag = false);
                 this.canvas.addEventListener('wheel', e => {
                     e.preventDefault();
-                    const factor = e.deltaY > 0 ? 0.9 : 1.1;
-                    this.camera.zoom = Math.max(0.3, Math.min(3, this.camera.zoom * factor));
-                    this.render();
+                    const f = e.deltaY > 0 ? 0.9 : 1.1;
+                    this.camera.zoom = Math.max(0.3, Math.min(3, this.camera.zoom * f));
                 });
+                this.canvas.addEventListener('click', e => this.onClick(e));
+
+                this.calcPositions();
             }
 
-            calculatePositions() {
-                const hexH = Math.sqrt(3) * CONFIG.HEX_SIZE;
-                for (const c of this.grid.cells) {
+            calcPositions() {
+                const h = Math.sqrt(3) * CONFIG.HEX_SIZE;
+                for (const c of this.grid) {
                     c.x = CONFIG.HEX_SIZE * 1.5 * c.q;
-                    c.y = hexH * (c.r + c.q * 0.5);
+                    c.y = h * (c.r + c.q * 0.5);
                 }
             }
 
-            initPlayer() {
-                const center = this.grid.get(10, 10);
-                if (center) {
-                    center.building = 'command';
-                    this.commands.push(center);
-                    this.updateVisibility();
-                }
-            }
+            get(q, r) { return this.grid.find(c => c.q === q && c.r === r); }
 
-            hexToScreen(q, r) {
-                const hexH = Math.sqrt(3) * CONFIG.HEX_SIZE;
+            toScreen(q, r) {
+                const h = Math.sqrt(3) * CONFIG.HEX_SIZE;
                 const x = CONFIG.HEX_SIZE * 1.5 * q;
-                const y = hexH * (r + q * 0.5);
+                const y = h * (r + q * 0.5);
                 return {
                     x: x * this.camera.zoom + this.camera.x + this.canvas.width / 2,
                     y: y * this.camera.zoom + this.camera.y + this.canvas.height / 2
                 };
             }
 
-            screenToHex(sx, sy) {
+            toHex(sx, sy) {
                 const x = (sx - this.camera.x - this.canvas.width / 2) / this.camera.zoom;
                 const y = (sy - this.camera.y - this.canvas.height / 2) / this.camera.zoom;
-                const hexH = Math.sqrt(3) * CONFIG.HEX_SIZE;
+                const h = Math.sqrt(3) * CONFIG.HEX_SIZE;
                 const q = Math.round((2/3) * x / CONFIG.HEX_SIZE);
-                const r = Math.round((-1/3) * x / CONFIG.HEX_SIZE + y / hexH);
+                const r = Math.round((-1/3) * x / CONFIG.HEX_SIZE + y / h);
                 return { q, r };
             }
 
-            setBuildMode(type) {
+            setBuild(type) {
                 this.buildMode = type;
-                this.log('建造模式: ' + type);
+                this.moveMode = false;
+                this.gatherMode = false;
+                this.log('建造: ' + BUILDINGS[type]?.name);
             }
 
-            cancelBuild() {
-                this.buildMode = null;
-            }
+            cancelBuild() { this.buildMode = null; }
+            toggleMove() { this.moveMode = !this.moveMode; this.gatherMode = false; this.buildMode = null; }
+            toggleGather() { this.gatherMode = !this.gatherMode; this.moveMode = false; this.buildMode = null; }
 
             spawnUnit() {
-                if (this.energy < 50) {
-                    this.log('能量不足');
+                if (this.energy < 30 || this.units.length >= CONFIG.MAX_UNITS) {
+                    this.log(this.units.length >= CONFIG.MAX_UNITS ? '单位上限' : '能量不足');
                     return;
                 }
-                const spawn = this.commands[0];
-                if (!spawn) return;
+                if (!this.base) return;
                 
-                this.energy -= 50;
-                this.units.push({
-                    id: Date.now(),
-                    q: spawn.q,
-                    r: spawn.r,
-                    hp: 100
-                });
-                this.updateUI();
+                this.energy -= 30;
+                const u = {
+                    id: Date.now() + Math.random(),
+                    q: this.base.q, r: this.base.r,
+                    hp: 100, maxHp: 100,
+                    carrying: 0, carryType: null
+                };
+                this.units.push(u);
+                this.get(u.q, u.r).unit = u;
                 this.log('单位已生成');
             }
 
-            toggleMove() {
-                this.moveMode = !this.moveMode;
-                this.log(this.moveMode ? '移动模式开启' : '移动模式关闭');
-            }
-
-            handleClick(e) {
+            onClick(e) {
                 const rect = this.canvas.getBoundingClientRect();
-                const pos = this.screenToHex(e.clientX - rect.left, e.clientY - rect.top);
-                const hex = this.grid.get(pos.q, pos.r);
-                if (!hex) return;
+                const p = this.toHex(e.clientX - rect.left, e.clientY - rect.top);
+                const cell = this.get(p.q, p.r);
+                if (!cell) return;
 
                 if (this.buildMode) {
-                    const costs = { command: 100, signal: 50, mine: 20 };
-                    const cost = costs[this.buildMode] || 50;
-                    if (this.energy >= cost && !hex.building) {
-                        this.energy -= cost;
-                        hex.building = this.buildMode;
-                        if (this.buildMode === 'command') this.commands.push(hex);
-                        this.updateVisibility();
-                        this.updateUI();
-                        this.log('建造完成: ' + this.buildMode);
+                    const b = BUILDINGS[this.buildMode];
+                    if (this.energy >= b.cost && !cell.building) {
+                        this.energy -= b.cost;
+                        cell.building = { type: this.buildMode, ...b, storedE: 0, storedG: 0 };
+                        this.log('建造完成: ' + b.name);
                     }
                     this.buildMode = null;
                     return;
                 }
 
                 if (this.moveMode && this.selectedUnit) {
-                    const dist = distance(this.selectedUnit, hex);
-                    if (dist <= 2) {
-                        this.selectedUnit.q = hex.q;
-                        this.selectedUnit.r = hex.r;
-                        this.updateVisibility();
-                        this.log('单位移动完成');
+                    const u = this.selectedUnit;
+                    const dist = (Math.abs(u.q - cell.q) + Math.abs(u.r - cell.r)) / 2;
+                    if (dist <= 2 && !cell.unit) {
+                        this.get(u.q, u.r).unit = null;
+                        u.q = cell.q; u.r = cell.r;
+                        cell.unit = u;
+                        this.log('移动完成');
                     }
                     this.moveMode = false;
                     return;
                 }
 
-                const unit = this.units.find(u => u.q === hex.q && u.r === hex.r);
-                if (unit) {
-                    this.selectedUnit = unit;
-                    this.log('选中单位');
+                if (this.gatherMode && this.selectedUnit) {
+                    const u = this.selectedUnit;
+                    if (u.q === cell.q && u.r === cell.r) {
+                        if (cell.energy > 0) {
+                            const amt = Math.min(20, cell.energy);
+                            cell.energy -= amt;
+                            u.carrying += amt;
+                            u.carryType = 'energy';
+                            this.log('采集 ' + amt + ' 能量');
+                        } else if (cell.gold > 0) {
+                            const amt = Math.min(10, cell.gold);
+                            cell.gold -= amt;
+                            u.carrying += amt;
+                            u.carryType = 'gold';
+                            this.log('采集 ' + amt + ' 黄金');
+                        }
+                    } else {
+                        const dist = (Math.abs(u.q - cell.q) + Math.abs(u.r - cell.r)) / 2;
+                        if (dist <= 1 && (cell.energy > 0 || cell.gold > 0)) {
+                            this.get(u.q, u.r).unit = null;
+                            u.q = cell.q; u.r = cell.r;
+                            cell.unit = u;
+                            this.log('移动到资源点');
+                        }
+                    }
+                    this.gatherMode = false;
+                    return;
                 }
 
-                this.updateHexInfo(hex);
-                this.render();
+                if (cell.unit) {
+                    this.selectedUnit = cell.unit;
+                }
+
+                this.updateDetail(cell);
             }
 
-            updateHexInfo(hex) {
-                const info = document.getElementById('hexInfo');
-                info.innerHTML = `
-                    <div class="stat"><span class="stat-label">坐标</span><span class="stat-value">(${hex.q}, ${hex.r})</span></div>
-                    <div class="stat"><span class="stat-label">高度</span><span class="stat-value">${hex.height}</span></div>
-                    <div class="stat"><span class="stat-label">硬度</span><span class="stat-value">${hex.hardness}</span></div>
-                    <div class="stat"><span class="stat-label">能量</span><span class="stat-value">${hex.energy || '无'}</span></div>
-                    <div class="stat"><span class="stat-label">黄金</span><span class="stat-value">${hex.gold || '无'}</span></div>
-                    ${hex.building ? `<div class="stat"><span class="stat-label">建筑</span><span class="stat-value">${hex.building}</span></div>` : ''}
+            updateDetail(cell) {
+                const d = document.getElementById('hexDetail');
+                let html = `
+                    <div class="stat-row"><span>坐标</span><span>(${cell.q},${cell.r})</span></div>
+                    <div class="stat-row"><span>高度</span><span>${cell.height}</span></div>
+                    <div class="stat-row"><span>能量矿</span><span>${cell.energy}</span></div>
+                    <div class="stat-row"><span>黄金矿</span><span>${cell.gold}</span></div>
                 `;
-            }
-
-            updateVisibility() {
-                for (const c of this.grid.cells) c.visible = false;
-                
-                for (const cmd of this.commands) {
-                    for (const c of this.grid.cells) {
-                        if (distance(cmd, c) <= CONFIG.SIGNAL_RANGE) {
-                            c.visible = true;
-                            c.explored = true;
-                        }
+                if (cell.building) {
+                    html += `<div class="stat-row"><span>建筑</span><span>${cell.building.name}</span></div>`;
+                    if (cell.building.storedE > 0) {
+                        html += `<div class="stat-row"><span>储存能量</span><span>${cell.building.storedE}</span></div>`;
                     }
                 }
+                if (cell.unit) {
+                    html += `<div class="stat-row"><span>单位</span><span>HP:${cell.unit.hp} 携带:${cell.unit.carrying}${cell.unit.carryType || ''}</span></div>`;
+                }
+                d.innerHTML = html;
+            }
+
+            update() {
+                this.tick++;
                 
+                let prodE = 0;
+                for (const c of this.grid) {
+                    if (c.building?.prodE) {
+                        const b = c.building;
+                        b.storedE = Math.min(b.maxE || 999, b.storedE + b.prodE);
+                        prodE += b.prodE;
+                    }
+                    if (c.building?.prodG) {
+                        const b = c.building;
+                        b.storedG = Math.min(b.maxG || 999, b.storedG + b.prodG);
+                        this.gold += b.prodG;
+                    }
+                }
+
                 for (const u of this.units) {
-                    for (const c of this.grid.cells) {
-                        if (distance(u, c) <= 3) {
-                            c.visible = true;
-                            c.explored = true;
+                    if (u.carrying > 0 && u.q === this.base?.q && u.r === this.base?.r) {
+                        if (u.carryType === 'energy') {
+                            this.energy = Math.min(this.maxEnergy, this.energy + u.carrying);
+                        } else if (u.carryType === 'gold') {
+                            this.gold += u.carrying;
                         }
+                        u.carrying = 0;
+                        u.carryType = null;
+                        this.log('资源已交付');
                     }
                 }
-            }
 
-            updateUI() {
-                document.getElementById('resEnergy').textContent = this.energy;
-                document.getElementById('resGold').textContent = this.gold;
-                document.getElementById('unitCount').textContent = this.units.length;
-                
+                document.getElementById('resE').textContent = Math.floor(this.energy) + ' / ' + this.maxEnergy;
+                document.getElementById('barE').style.width = (this.energy / this.maxEnergy * 100) + '%';
+                document.getElementById('resG').textContent = this.gold;
+                document.getElementById('resU').textContent = this.units.length + ' / ' + CONFIG.MAX_UNITS;
+                document.getElementById('tickInfo').textContent = `Tick: ${this.tick} | 生产: +${prodE}E/s`;
+
                 const list = document.getElementById('unitList');
                 if (this.units.length === 0) {
                     list.innerHTML = '无单位';
                 } else {
-                    list.innerHTML = this.units.map(u => 
-                        `<div class="unit-item ${u === this.selectedUnit ? 'selected' : ''}" onclick="game.selectedUnit = game.units.find(x=>x.id===${u.id}); game.updateUI();">
-                            单位 #${u.id.toString().slice(-4)} HP:${u.hp}
-                        </div>`
-                    ).join('');
+                    list.innerHTML = this.units.map(u => {
+                        const hpPct = u.hp / u.maxHp * 100;
+                        return `<div class="unit-item ${u===this.selectedUnit?'selected':''}" onclick="game.selectedUnit=game.units.find(x=>x.id===${u.id});game.updateDetail(game.get(${u.q},${u.r}));">
+                            <span>#${u.id.toString().slice(-4)} ${u.carrying>0?'📦':''}</span>
+                            <div class="hp-bar"><div class="hp-fill" style="width:${hpPct}%"></div></div>
+                        </div>`;
+                    }).join('');
                 }
             }
 
-            log(msg) {
-                const logEl = document.getElementById('gameLog');
-                const entry = document.createElement('div');
-                entry.className = 'log-entry';
-                entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-                logEl.insertBefore(entry, logEl.firstChild);
-            }
-
-            getHeightColor(h) {
-                const r = Math.floor(26 + (h / CONFIG.MAX_HEIGHT) * 100);
-                const g = Math.floor(58 + (h / CONFIG.MAX_HEIGHT) * 40);
-                const b = Math.floor(26 + (h / CONFIG.MAX_HEIGHT) * 60);
-                return `rgb(${r},${g},${b})`;
-            }
-
-            drawHex(c) {
-                const pos = this.hexToScreen(c.q, c.r);
-                const size = CONFIG.HEX_SIZE * this.camera.zoom;
-                
-                if (pos.x < -size || pos.x > this.canvas.width + size ||
-                    pos.y < -size || pos.y > this.canvas.height + size) return;
-
-                this.ctx.beginPath();
-                for (let i = 0; i < 6; i++) {
-                    const angle = (Math.PI / 3) * i;
-                    const x = pos.x + size * Math.cos(angle);
-                    const y = pos.y + size * Math.sin(angle);
-                    if (i === 0) this.ctx.moveTo(x, y);
-                    else this.ctx.lineTo(x, y);
-                }
-                this.ctx.closePath();
-
-                if (!c.explored) {
-                    this.ctx.fillStyle = '#050510';
-                } else if (!c.visible) {
-                    this.ctx.fillStyle = '#1a1a2e';
-                } else {
-                    this.ctx.fillStyle = this.getHeightColor(c.height);
-                }
-                this.ctx.fill();
-
-                if (c.visible) {
-                    if (c.energy > 0) {
-                        this.ctx.fillStyle = 'rgba(255,215,0,0.3)';
-                        this.ctx.fill();
-                    }
-                    if (c.building) {
-                        const colors = { command: '#e94560', signal: '#4a9', mine: '#888' };
-                        this.ctx.fillStyle = colors[c.building] || '#fff';
-                        this.ctx.beginPath();
-                        this.ctx.arc(pos.x, pos.y, size * 0.4, 0, Math.PI * 2);
-                        this.ctx.fill();
-                    }
-                }
-
-                this.ctx.strokeStyle = c.visible ? '#444' : '#1a1a2e';
-                this.ctx.lineWidth = 1;
-                this.ctx.stroke();
-            }
-
-            render() {
+            draw() {
                 this.ctx.fillStyle = '#0a0a15';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-                
-                for (const c of this.grid.cells) {
-                    this.drawHex(c);
+
+                for (const c of this.grid) {
+                    const p = this.toScreen(c.q, c.r);
+                    const s = CONFIG.HEX_SIZE * this.camera.zoom;
+                    
+                    if (p.x < -s || p.x > this.canvas.width + s || p.y < -s || p.y > this.canvas.height + s) continue;
+
+                    this.ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        const a = (Math.PI / 3) * i;
+                        const x = p.x + s * Math.cos(a);
+                        const y = p.y + s * Math.sin(a);
+                        if (i === 0) this.ctx.moveTo(x, y);
+                        else this.ctx.lineTo(x, y);
+                    }
+                    this.ctx.closePath();
+
+                    const h = c.height;
+                    this.ctx.fillStyle = `rgb(${30+h},${50+h/2},${30+h/3})`;
+                    this.ctx.fill();
+
+                    if (c.energy > 0) {
+                        this.ctx.fillStyle = `rgba(255,215,0,${0.2 + c.energy/500})`;
+                        this.ctx.fill();
+                    }
+
+                    if (c.building) {
+                        const colors = { base: '#e94560', mineE: '#fd0', mineG: '#fa0', storageE: '#4a9', tower: '#f44' };
+                        this.ctx.fillStyle = colors[c.building.type] || '#fff';
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, s * 0.5, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+
+                    this.ctx.strokeStyle = '#333';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.stroke();
                 }
 
                 for (const u of this.units) {
-                    const pos = this.hexToScreen(u.q, u.r);
-                    const size = CONFIG.HEX_SIZE * this.camera.zoom * 0.5;
+                    const p = this.toScreen(u.q, u.r);
+                    const s = CONFIG.HEX_SIZE * this.camera.zoom * 0.4;
                     this.ctx.fillStyle = u === this.selectedUnit ? '#0f0' : '#4a9';
                     this.ctx.beginPath();
-                    this.ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+                    this.ctx.arc(p.x, p.y, s, 0, Math.PI * 2);
                     this.ctx.fill();
+                    
+                    if (u.carrying > 0) {
+                        this.ctx.fillStyle = '#fd0';
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x + s, p.y - s, s * 0.3, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
                 }
             }
 
-            startLoop() {
-                const loop = () => {
-                    this.render();
-                    requestAnimationFrame(loop);
-                };
+            start() {
+                setInterval(() => { if (!this.paused) this.update(); }, CONFIG.TICK_RATE / this.speed);
+                const loop = () => { this.draw(); requestAnimationFrame(loop); };
                 loop();
             }
 
-            regenerate() {
-                this.grid.generate();
-                this.calculatePositions();
-                this.commands = [];
-                this.units = [];
-                this.energy = CONFIG.START_ENERGY;
-                this.gold = CONFIG.START_GOLD;
-                this.initPlayer();
-                this.updateUI();
-                this.log('新地图已生成');
+            log(msg) {
+                const log = document.getElementById('log');
+                const e = document.createElement('div');
+                e.className = 'log-entry';
+                e.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                log.insertBefore(e, log.firstChild);
+                if (log.children.length > 20) log.lastChild.remove();
             }
 
-            export() {
+            save() {
                 const data = {
-                    energy: this.energy,
-                    gold: this.gold,
+                    tick: this.tick, energy: this.energy, gold: this.gold,
                     units: this.units,
-                    cells: this.grid.cells.map(c => ({
-                        q: c.q, r: c.r, building: c.building,
-                        height: c.height, energy: c.energy, gold: c.gold
+                    grid: this.grid.map(c => ({
+                        q: c.q, r: c.r, height: c.height,
+                        energy: c.energy, gold: c.gold,
+                        building: c.building
                     }))
                 };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'clawcraft-save.json';
-                a.click();
+                localStorage.setItem('clawcraft_save', JSON.stringify(data));
+                this.log('游戏已保存');
+            }
+
+            load() {
+                const data = localStorage.getItem('clawcraft_save');
+                if (!data) { this.log('没有存档'); return; }
+                const d = JSON.parse(data);
+                this.tick = d.tick || 0;
+                this.energy = d.energy || 0;
+                this.gold = d.gold || 0;
+                this.units = d.units || [];
+                for (const c of d.grid || []) {
+                    const cell = this.get(c.q, c.r);
+                    if (cell) {
+                        cell.height = c.height;
+                        cell.energy = c.energy;
+                        cell.gold = c.gold;
+                        cell.building = c.building;
+                    }
+                }
+                this.base = this.grid.find(c => c.building?.type === 'base');
+                this.log('游戏已加载');
+            }
+
+            reset() {
+                if (confirm('确定重置游戏？')) {
+                    this.resetData();
+                    this.log('游戏已重置');
+                }
             }
         }
 
