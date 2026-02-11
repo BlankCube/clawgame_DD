@@ -2,85 +2,644 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Signal War v6</title>
+<title>Signal War v7 - Realism</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:monospace;background:#000;color:#0f0;overflow:hidden;font-size:12px}
+body{font-family:monospace;background:#020204;color:#0a0;overflow:hidden;font-size:11px}
 #game{display:flex;height:100vh}
-#canvas{flex:1;cursor:grab}
-#canvas:active{cursor:grabbing}
-#ui{width:350px;background:#0a0a0a;border-left:2px solid #0f0;padding:10px;overflow-y:auto}
-h1{color:#0f0;font-size:14px;margin-bottom:10px}
-.section{background:#111;padding:8px;margin-bottom:8px;border:1px solid #222}
-.row{display:flex;justify-content:space-between;padding:4px;font-size:11px}
-button{padding:5px 10px;background:#0f0;color:#000;border:none;cursor:pointer;margin:2px;font-family:monospace}
-button:hover{background:#0a0}
-button:disabled{background:#333;color:#666}
-button.active{background:#f00;color:#fff}
-.log{height:100px;overflow-y:auto;background:#000;padding:5px;font-size:10px;border:1px solid #222}
-.stat{color:#888}
-.val{color:#0f0}
-.alert{color:#f00}
+#viewport{flex:1;position:relative;overflow:hidden;background:#000}
+#world,#signal,#fog{position:absolute;top:0;left:0}
+#ui{width:380px;background:#0a0a0c;border-left:1px solid #0f0;padding:8px;overflow-y:auto}
+h1{color:#0f0;font-size:13px;margin-bottom:8px;text-shadow:0 0 10px #0f0}
+h2{color:#0a0;font-size:11px;margin:8px 0 4px;background:#0f0;padding:2px 5px}
+.section{background:#111;padding:6px;margin-bottom:6px;border:1px solid #1a1a1a}
+.row{display:flex;justify-content:space-between;padding:3px;font-size:10px}
+button{padding:4px 8px;background:#0a0a0a;color:#0f0;border:1px solid #0f0;cursor:pointer;margin:2px;font-family:monospace;font-size:10px}
+button:hover{background:#0f0;color:#000}
+button:disabled{background:#111;color:#333;border-color:#222}
+button.active{background:#0f0;color:#000}
+button.danger{border-color:#f00;color:#f00}
+button.danger:hover{background:#f00;color:#000}
+.log{height:80px;overflow-y:auto;background:#000;padding:4px;font-size:9px;border:1px solid #111}
+.log-entry{margin:2px 0;padding:2px;border-left:2px solid #0f0;padding-left:4px}
+.log-entry.combat{border-color:#f00}
+.log-entry.signal{border-color:#fa0}
+.bar{height:4px;background:#111;margin-top:2px;overflow:hidden}
+.bar-fill{height:100%;transition:width 0.3s}
+#time{display:inline-block;color:#888;font-size:10px}
+.info-panel{background:#0a0a0a;padding:5px;border:1px solid #0f0;margin:5px 0;font-size:10px}
+.concept{color:#888;font-size:9px;margin:5px 0;padding:5px;border-left:2px solid #0f0;background:#0a0a0a}
 </style>
 </head>
 <body>
 <div id="game">
-<canvas id="canvas"></canvas>
+<div id="viewport">
+<canvas id="world"></canvas>
+<canvas id="signal"></canvas>
+<canvas id="fog"></canvas>
+</div>
 <div id="ui">
-<h1>📡 SIGNAL WAR v6</h1>
-<div class="section">
-<div class="row"><span class="stat">⚡ ENERGY</span><span class="val" id="e">0</span></div>
-<div class="row"><span class="stat">🔩 MATTER</span><span class="val" id="m">0</span></div>
-<div class="row"><span class="stat">📡 INFO</span><span class="val" id="i">0</span></div>
+<h1>📡 SIGNAL WAR v7 - REALISM</h1>
+
+<div class="concept">
+<strong>DESIGN PHILOSOPHY:</strong> Everything follows physical laws. Energy decays. Information delays. Matter transports.
 </div>
+
 <div class="section">
-<div class="row"><span class="stat">SIGNAL LAYER</span><span class="val" id="layer">OFF</span></div>
-<button onclick="game.toggleLayer()">TOGGLE SIGNAL VIEW</button>
+<div class="row"><span>⚡ ENERGY</span><span id="e">0</span></div>
+<div class="bar"><div class="bar-fill" id="bar-e" style="width:0%;background:#fd0"></div></div>
+<div class="row" style="margin-top:5px"><span>🔩 MATTER</span><span id="m">0</span></div>
+<div class="bar"><div class="bar-fill" id="bar-m" style="width:0%;background:#aaa"></div></div>
+<div class="row" style="margin-top:5px"><span>📡 INFO</span><span id="i">0</span></div>
+<div class="bar"><div class="bar-fill" id="bar-i" style="width:0%;background:#0af"></div></div>
 </div>
+
 <div class="section">
+<div class="row"><span>GAME TIME</span><span id="time">Day 0 00:00</span></div>
+<div class="row"><span>SIGNAL SPEED</span><span>3 tiles/tick</span></div>
+<div class="row"><span>ENERGY DECAY</span><span>0.1%/tick</span></div>
+</div>
+
+<div class="section">
+<h2>VIEW MODES</h2>
+<button onclick="game.setView('world')">WORLD</button>
+<button onclick="game.setView('thermal')">THERMAL</button>
+<button onclick="game.setView('em')">ELECTROMAGNETIC</button>
+<button onclick="game.setView('fog')">FOG OF WAR</button>
+</div>
+
+<div class="section">
+<h2>OPERATIONS</h2>
 <button id="btn-select" onclick="game.setMode('select')">SELECT</button>
-<button id="btn-build" onclick="game.setMode('build')">BUILD GEN</button>
-<button id="btn-destroy" onclick="game.setMode('destroy')">DESTROY</button>
-<button id="btn-forge" onclick="game.setMode('forge')">FORGE SIGNAL</button>
-<button id="btn-scout" onclick="game.setMode('scout')">SCOUT</button>
+<button id="btn-build" onclick="game.setMode('build')">BUILD</button>
+<button id="btn-transport" onclick="game.setMode('transport')">TRANSPORT</button>
+<button id="btn-tunnel" onclick="game.setMode('tunnel')">TUNNEL</button>
+<button id="btn-forge" onclick="game.setMode('forge')">FORGE</button>
+<button id="btn-jam" onclick="game.setMode('jam')">JAM</button>
 </div>
+
 <div class="section">
-<div id="info">Click to select</div>
+<h2>SELECTED</h2>
+<div id="selected-info">Click to select entity</div>
 </div>
+
 <div class="section">
-<button onclick="game.speed=game.speed==1?10:1">SPEED x10</button>
+<h2>ACTIVE TRANSPORTS</h2>
+<div id="transports">None</div>
+</div>
+
+<div class="section">
+<button onclick="game.speed=game.speed==1?20:1">SPEED x20</button>
+<button onclick="game.pause=!game.pause">PAUSE</button>
 <button onclick="game.save()">SAVE</button>
-<button onclick="game.load()">LOAD</button>
-<button onclick="game.reset()">RESET</button>
+<button class="danger" onclick="game.reset()">RESET</button>
 </div>
+
 <div class="log" id="log"></div>
 </div>
 </div>
+
 <script>
-const CONFIG={MAP_W:80,MAP_H:80,HEX_SIZE:12,TICK:200,START_E:500,START_M:300,START_I:50,SIGNAL_DECAY:0.9};
-class Game{constructor(){this.c=document.getElementById('canvas');this.x=this.c.getContext('2d');this.cam={x:0,y:0,z:1};this.tick=0;this.speed=1;this.showSignal=false;this.mode='select';this.res={E:CONFIG.START_E,M:CONFIG.START_M,I:CONFIG.START_I};this.grid=[];this.signals=[];this.entities=[];this.selected=null;this.init();this.setup();this.start()}
-init(){for(let q=0;q<CONFIG.MAP_W;q++){for(let r=0;r<CONFIG.MAP_H;r++){let h=Math.floor((Math.sin(q*0.1)*Math.cos(r*0.1)+1)*30);this.grid.push({q,r,x:0,y:0,h,m:h*10,e:null});this.signals.push({s:0,f:false,a:0})}}let cx=Math.floor(CONFIG.MAP_W/2),cy=Math.floor(CONFIG.MAP_H/2);this.createEntity(cx,cy,'gen');this.createEntity(cx+1,cy,'storage');this.calcPos()}
-calcPos(){let h=Math.sqrt(3)*CONFIG.HEX_SIZE;for(let c of this.grid){c.x=CONFIG.HEX_SIZE*1.5*c.q;c.y=h*(c.r+c.q*0.5)}}
-setup(){let rs=()=>{this.c.width=this.c.parentElement.clientWidth;this.c.height=this.c.parentElement.clientHeight};window.addEventListener('resize',rs);rs();let d=false,l={x:0,y:0};this.c.addEventListener('mousedown',e=>{d=true;l={x:e.clientX,y:e.clientY}});this.c.addEventListener('mousemove',e=>{if(d){this.cam.x+=e.clientX-l.x;this.cam.y+=e.clientY-l.y;l={x:e.clientX,y:e.clientY}}});this.c.addEventListener('mouseup',()=>d=false);this.c.addEventListener('wheel',e=>{e.preventDefault();this.cam.z*=e.deltaY>0?0.9:1.1;this.cam.z=Math.max(0.3,Math.min(5,this.cam.z))});this.c.addEventListener('click',e=>this.onClick(e))}
-get(q,r){if(q<0||q>=CONFIG.MAP_W||r<0||r>=CONFIG.MAP_H)return null;return this.grid[r*CONFIG.MAP_W+q]}
-getSig(q,r){if(q<0||q>=CONFIG.MAP_W||r<0||r>=CONFIG.MAP_H)return null;return this.signals[r*CONFIG.MAP_W+q]}
-toScreen(q,r){let h=Math.sqrt(3)*CONFIG.HEX_SIZE;return{x:(CONFIG.HEX_SIZE*1.5*q)*this.cam.z+this.cam.x+this.c.width/2,y:(h*(r+q*0.5))*this.cam.z+this.cam.y+this.c.height/2}}
-toHex(sx,sy){let x=(sx-this.cam.x-this.c.width/2)/this.cam.z;let y=(sy-this.cam.y-this.c.height/2)/this.cam.z;let h=Math.sqrt(3)*CONFIG.HEX_SIZE;return{q:Math.round((2/3)*x/CONFIG.HEX_SIZE),r:Math.round((-1/3)*x/CONFIG.HEX_SIZE+y/h)}}
-createEntity(q,r,type){let c=this.get(q,r);if(!c||c.e)return;let e={id:Date.now(),type,q,r,hp:100,owner:'player',storage:{E:0,M:0,I:0}};if(type=='gen'){e.prod={E:5};e.sig=8;e.cost={M:100,E:50}}else if(type=='storage'){e.cap=1000;e.sig=2;e.cost={M:200}}else if(type=='scout'){e.move=3;e.sig=1;e.vision=8;e.cost={M:30,E:20,I:20}}c.e=e;this.entities.push(e);this.emitSig(q,r,e.sig||5);return e}
-emitSig(q,r,str,fake=false){let range=Math.ceil(str/2);for(let dq=-range;dq<=range;dq++){for(let dr=-range;dr<=range;dr++){let dist=(Math.abs(dq)+Math.abs(dr)+Math.abs(dq+dr))/2;if(dist>range)continue;let s=this.getSig(q+dq,r+dr);if(s){let local=str*Math.pow(CONFIG.SIGNAL_DECAY,dist);if(local>s.s){s.s=local;s.f=fake;s.a=0}}}}}
-setMode(m){this.mode=m;document.querySelectorAll('button').forEach(b=>b.classList.remove('active'));document.getElementById('btn-'+m)?.classList.add('active')}
-toggleLayer(){this.showSignal=!this.showSignal;document.getElementById('layer').textContent=this.showSignal?'ON':'OFF'}
-onClick(e){let r=this.c.getBoundingClientRect();let p=this.toHex(e.clientX-r.left,e.clientY-r.top);let c=this.get(p.q,p.r);if(!c)return;switch(this.mode){case'select':this.selected=c.e;this.updateInfo(c);break;case'build':if(!c.e&&this.res.M>=100&&this.res.E>=50){this.res.M-=100;this.res.E-=50;this.createEntity(p.q,p.r,'gen');this.log('Generator built')}break;case'destroy':if(c.e){this.destroy(c.e)}else if(c.m>0){let ex=Math.min(50,c.m);c.m-=ex;c.h=Math.floor(c.m/10);this.res.M+=ex;this.emitSig(p.q,p.r,3);this.log('Extracted '+ex+'M')}break;case'forge':if(this.res.I>=20){this.res.I-=20;this.emitSig(p.q,p.r,15,true);this.log('FAKE SIGNAL at ('+p.q+','+p.r+')','alert')}break;case'scout':if(this.res.M>=30&&this.res.E>=20&&this.res.I>=20){this.res.M-=30;this.res.E-=20;this.res.I-=20;this.createEntity(p.q,p.r,'scout');this.log('Scout deployed')}break}}
-destroy(e){let c=this.get(e.q,e.r);if(c)c.e=null;this.entities=this.entities.filter(x=>x!==e);if(e.cost){this.res.M+=Math.floor((e.cost.M||0)*0.5);this.res.E+=Math.floor((e.cost.E||0)*0.3)}this.emitSig(e.q,e.r,30);this.log(e.type+' destroyed')}
-update(){this.tick++;for(let e of this.entities){if(e.prod){if(e.prod.E&&this.res.E<5000)this.res.E+=e.prod.E;if(e.prod.M)this.res.M+=e.prod.M;if(e.prod.I)this.res.I+=e.prod.I;this.emitSig(e.q,e.r,e.sig||5)}}for(let s of this.signals){s.s*=CONFIG.SIGNAL_DECAY;s.a++;if(s.s<0.1)s.s=0}document.getElementById('e').textContent=Math.floor(this.res.E);document.getElementById('m').textContent=Math.floor(this.res.M);document.getElementById('i').textContent=Math.floor(this.res.I)}
-draw(){this.x.fillStyle='#000';this.x.fillRect(0,0,this.c.width,this.c.height);for(let c of this.grid){let p=this.toScreen(c.q,c.r);let s=CONFIG.HEX_SIZE*this.cam.z;if(p.x<-s||p.x>this.c.width+s||p.y<-s||p.y>this.c.height+s)continue;let sig=this.getSig(c.q,c.r);if(this.showSignal&&sig.s>1){let intensity=Math.min(1,sig.s/20);this.x.fillStyle=`rgba(${sig.f?255:255},${sig.f?100:0},0,${intensity*0.5})`;this.x.beginPath();this.x.arc(p.x,p.y,s*1.5,0,Math.PI*2);this.x.fill()}this.x.beginPath();for(let i=0;i<6;i++){let a=(Math.PI/3)*i;let x=p.x+s*Math.cos(a);let y=p.y+s*Math.sin(a);if(i==0)this.x.moveTo(x,y);else this.x.lineTo(x,y)}this.x.closePath();let h=c.h;this.x.fillStyle=`rgb(${20+h},${30+h/2},${20+h/3})`;this.x.fill();if(c.e){let colors={gen:'#0f0',storage:'#00f',scout:'#ff0'};this.x.fillStyle=colors[c.e.type]||'#fff';this.x.beginPath();this.x.arc(p.x,p.y,s*0.6,0,Math.PI*2);this.x.fill()}this.x.strokeStyle='#222';this.x.lineWidth=0.5;this.x.stroke()}requestAnimationFrame(()=>this.draw())}
-updateInfo(c){let h='Position: ('+c.q+','+c.r+')<br>Height: '+c.h+'<br>Matter: '+c.m;let s=this.getSig(c.q,c.r);h+='<br>Signal: '+(s.s>1?s.s.toFixed(1)+(s.f?' [FAKE]':''):'none');if(c.e)h+='<br>Entity: '+c.e.type+'<br>HP: '+c.e.hp;document.getElementById('info').innerHTML=h}
-log(m,c=''){let l=document.getElementById('log');let e=document.createElement('div');e.textContent='['+this.tick+'] '+m;e.className=c;l.insertBefore(e,l.firstChild);if(l.children.length>20)l.lastChild.remove()}
-save(){localStorage.setItem('sw6',JSON.stringify({tick:this.tick,res:this.res,entities:this.entities.map(e=>({type:e.type,q:e.q,r:e.r}))}));this.log('SAVED')}
-load(){let d=localStorage.getItem('sw6');if(!d)return;let data=JSON.parse(d);this.tick=data.tick||0;this.res=data.res||{E:500,M:300,I:50};this.entities=[];for(let c of this.grid)c.e=null;for(let e of data.entities||[]){this.createEntity(e.q,e.r,e.type)}this.log('LOADED')}
-reset(){if(confirm('RESET?')){this.init();this.log('RESET')}}
-start(){setInterval(()=>{for(let i=0;i<this.speed;i++)this.update()},CONFIG.TICK);this.draw()}}
-let game=new Game();
-</script>
-</body>
-</html>
+// ==========================================
+// v7 DESIGN: Physical Realism
+// ==========================================
+// KEY CONCEPTS:
+// 1. Signal propagation delay - info travels at finite speed
+// 2. Energy decay - 2nd law of thermodynamics
+// 3. Physical logistics - resources must be transported
+// 4. Terrain matters - height blocks signals, affects movement
+// 5. Information warfare - jamming, forging, encryption
+
+const CONFIG = {
+    MAP_W: 100, MAP_H: 100, HEX_SIZE: 10,
+    TICK: 100,              // Fast simulation
+    DAY_LENGTH: 1000,       // Ticks per day
+    
+    // Physics
+    SIGNAL_SPEED: 3,        // Tiles per tick
+    ENERGY_DECAY: 0.001,    // 0.1% per tick
+    HEAT_DISSIPATION: 0.95,
+    
+    // Resources
+    START_E: 1000, START_M: 500, START_I: 100,
+    MAX_STORAGE: 5000,
+    
+    // Costs
+    BUILD_COST: { M: 100, E: 50 },
+    TRANSPORT_COST: { M: 20, E: 10 },
+    TUNNEL_COST: { M: 200, E: 100 },
+    FORGE_COST: { I: 30 },
+    JAM_COST: { E: 5, I: 2 },
+    
+    // Signal types
+    SIGNAL_THERMAL: 1,      // Heat - from production
+    SIGNAL_EM: 2,           // Electromagnetic - from communication
+    SIGNAL_MECHANICAL: 3    // Vibration - from movement
+};
+
+class RealisticSignalWar {
+    constructor() {
+        this.world = document.getElementById('world');
+        this.signal = document.getElementById('signal');
+        this.fog = document.getElementById('fog');
+        this.wx = this.world.getContext('2d');
+        this.sx = this.signal.getContext('2d');
+        this.fx = this.fog.getContext('2d');
+        
+        this.cam = { x: 0, y: 0, z: 1 };
+        this.tick = 0;
+        this.speed = 1;
+        this.pause = false;
+        this.view = 'world';
+        this.mode = 'select';
+        
+        // Resources
+        this.res = { E: CONFIG.START_E, M: CONFIG.START_M, I: CONFIG.START_I };
+        
+        // World state
+        this.grid = [];        // Terrain
+        this.entities = [];    // Buildings, units
+        this.transports = [];  // Active transports
+        this.signals = [];     // Propagating signals
+        this.packets = [];     // Information packets (delayed)
+        
+        // Fog of war - what player actually knows
+        this.knowledge = new Map(); // tileKey -> { lastSeen, confidence }
+        
+        this.init();
+        this.setup();
+        this.start();
+    }
+    
+    init() {
+        // Generate terrain with noise
+        for(let q = 0; q < CONFIG.MAP_W; q++) {
+            for(let r = 0; r < CONFIG.MAP_H; r++) {
+                // Multiple octaves of noise
+                let h = 0;
+                h += Math.sin(q * 0.05) * Math.cos(r * 0.05) * 40;
+                h += Math.sin(q * 0.15 + r * 0.1) * 20;
+                h += Math.sin(q * 0.3) * Math.cos(r * 0.3) * 10;
+                h = Math.floor((h + 70) / 2);
+                h = Math.max(5, Math.min(100, h));
+                
+                this.grid.push({
+                    q, r,
+                    height: h,
+                    matter: h * 15,      // Extractable matter
+                    tunnel: null,         // Tunnel level (if dug)
+                    entity: null,
+                    temperature: 15,      // Ambient
+                    emField: 0            // Electromagnetic field strength
+                });
+            }
+        }
+        
+        // Player base
+        let cx = Math.floor(CONFIG.MAP_W / 2);
+        let cy = Math.floor(CONFIG.MAP_H / 2);
+        this.createEntity(cx, cy, 'command', 'player');
+        this.createEntity(cx + 2, cy, 'generator', 'player');
+        this.createEntity(cx, cy + 2, 'mine', 'player');
+        
+        this.calcPositions();
+    }
+    
+    calcPositions() {
+        let h = Math.sqrt(3) * CONFIG.HEX_SIZE;
+        for(let c of this.grid) {
+            c.px = CONFIG.HEX_SIZE * 1.5 * c.q;
+            c.py = h * (c.r + c.q * 0.5);
+        }
+    }
+    
+    setup() {
+        let resize = () => {
+            let v = document.getElementById('viewport');
+            this.world.width = v.clientWidth;
+            this.world.height = v.clientHeight;
+            this.signal.width = v.clientWidth;
+            this.signal.height = v.clientHeight;
+            this.fog.width = v.clientWidth;
+            this.fog.height = v.clientHeight;
+        };
+        window.addEventListener('resize', resize);
+        resize();
+        
+        // Camera controls
+        let drag = false, last = { x: 0, y: 0 };
+        this.world.addEventListener('mousedown', e => { drag = true; last = { x: e.clientX, y: e.clientY }; });
+        this.world.addEventListener('mousemove', e => {
+            if(drag) {
+                this.cam.x += e.clientX - last.x;
+                this.cam.y += e.clientY - last.y;
+                last = { x: e.clientX, y: e.clientY };
+            }
+        });
+        this.world.addEventListener('mouseup', () => drag = false);
+        this.world.addEventListener('wheel', e => {
+            e.preventDefault();
+            this.cam.z *= e.deltaY > 0 ? 0.9 : 1.1;
+            this.cam.z = Math.max(0.2, Math.min(4, this.cam.z));
+        });
+        this.world.addEventListener('click', e => this.onClick(e));
+    }
+    
+    get(q, r) {
+        if(q < 0 || q >= CONFIG.MAP_W || r < 0 || r >= CONFIG.MAP_H) return null;
+        return this.grid[r * CONFIG.MAP_W + q];
+    }
+    
+    toScreen(c) {
+        return {
+            x: c.px * this.cam.z + this.cam.x + this.world.width / 2,
+            y: c.py * this.cam.z + this.cam.y + this.world.height / 2
+        };
+    }
+    
+    toHex(sx, sy) {
+        let x = (sx - this.cam.x - this.world.width / 2) / this.cam.z;
+        let y = (sy - this.cam.y - this.world.height / 2) / this.cam.z;
+        let h = Math.sqrt(3) * CONFIG.HEX_SIZE;
+        return {
+            q: Math.round((2/3) * x / CONFIG.HEX_SIZE),
+            r: Math.round((-1/3) * x / CONFIG.HEX_SIZE + y / h)
+        };
+    }
+    
+    createEntity(q, r, type, owner) {
+        let c = this.get(q, r);
+        if(!c || c.entity) return null;
+        
+        let e = {
+            id: Date.now() + Math.random(),
+            type, owner, q, r,
+            hp: 100,
+            storage: { E: 0, M: 0, I: 0 },
+            producing: false,
+            temperature: 20
+        };
+        
+        if(type === 'command') {
+            e.hp = 500;
+            e.storageCap = 1000;
+        } else if(type === 'generator') {
+            e.production = { E: 10 };
+            e.heatOutput = 20;
+            e.hp = 200;
+        } else if(type === 'mine') {
+            e.production = { M: 5 };
+            e.hp = 150;
+        }
+        
+        c.entity = e;
+        c.temperature += 5; // Buildings add heat
+        this.entities.push(e);
+        
+        // Emit initial thermal signal
+        this.emitSignal(q, r, CONFIG.SIGNAL_THERMAL, 30, { entity: e.id, type });
+        
+        return e;
+    }
+    
+    // Signal propagation with delay
+    emitSignal(q, r, type, strength, data) {
+        this.signals.push({
+            q, r, type, strength,
+            data,
+            age: 0,
+            propagated: new Set() // Track which tiles have received this signal
+        });
+    }
+    
+    // Create transport - physical logistics
+    createTransport(from, to, cargo) {
+        if(this.res.M < CONFIG.TRANSPORT_COST.M || this.res.E < CONFIG.TRANSPORT_COST.E) {
+            this.log('Insufficient resources for transport', 'combat');
+            return;
+        }
+        
+        this.res.M -= CONFIG.TRANSPORT_COST.M;
+        this.res.E -= CONFIG.TRANSPORT_COST.E;
+        
+        let t = {
+            id: Date.now(),
+            from: { q: from.q, r: from.r },
+            to: { q: to.q, r: to.r },
+            cargo: { ...cargo },
+            progress: 0,
+            path: this.findPath(from, to),
+            position: { q: from.q, r: from.r },
+            speed: 0.5, // Tiles per tick
+            signature: 10 // Mechanical signal strength
+        };
+        
+        this.transports.push(t);
+        this.log(`Transport dispatched: ${cargo.E || 0}E ${cargo.M || 0}M`, 'signal');
+        
+        // Transport emits signal immediately
+        this.emitSignal(from.q, from.r, CONFIG.SIGNAL_MECHANICAL, t.signature, { transport: t.id });
+    }
+    
+    findPath(start, end) {
+        // Simple A* pathfinding considering terrain
+        // For now, direct path
+        return [];
+    }
+    
+    setView(v) {
+        this.view = v;
+        document.querySelectorAll('button').forEach(b => {
+            if(b.textContent.includes('WORLD') || b.textContent.includes('THERMAL')) b.classList.remove('active');
+        });
+    }
+    
+    setMode(m) {
+        this.mode = m;
+        document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + m)?.classList.add('active');
+    }
+    
+    onClick(e) {
+        let r = this.world.getBoundingClientRect();
+        let p = this.toHex(e.clientX - r.left, e.clientY - r.top);
+        let c = this.get(p.q, p.r);
+        if(!c) return;
+        
+        switch(this.mode) {
+            case 'select':
+                this.select(c);
+                break;
+            case 'build':
+                this.build(c);
+                break;
+            case 'transport':
+                this.startTransport(c);
+                break;
+            case 'tunnel':
+                this.digTunnel(c);
+                break;
+            case 'forge':
+                this.forgeSignal(c);
+                break;
+            case 'jam':
+                this.jamSignals(c);
+                break;
+        }
+    }
+    
+    select(c) {
+        this.selected = c;
+        let info = `Position: (${c.q}, ${c.r})\n`;
+        info += `Height: ${c.height}m\n`;
+        info += `Temperature: ${c.temperature.toFixed(1)}°C\n`;
+        info += `Matter: ${c.matter}\n`;
+        if(c.tunnel) info += `Tunnel Level: ${c.tunnel}\n`;
+        if(c.entity) {
+            info += `\nEntity: ${c.entity.type}\n`;
+            info += `HP: ${c.entity.hp}\n`;
+            info += `Storage: ${JSON.stringify(c.entity.storage)}`;
+        }
+        document.getElementById('selected-info').innerText = info;
+    }
+    
+    build(c) {
+        if(c.entity || this.res.M < CONFIG.BUILD_COST.M || this.res.E < CONFIG.BUILD_COST.E) {
+            this.log('Cannot build here', 'combat');
+            return;
+        }
+        this.res.M -= CONFIG.BUILD_COST.M;
+        this.res.E -= CONFIG.BUILD_COST.E;
+        this.createEntity(c.q, c.r, 'generator', 'player');
+        this.log(`Built generator at (${c.q}, ${c.r})`, 'signal');
+    }
+    
+    startTransport(c) {
+        if(!this.selected || !this.selected.entity) {
+            this.log('Select source first', 'combat');
+            return;
+        }
+        if(!c.entity) {
+            this.log('Select destination with storage', 'combat');
+            return;
+        }
+        this.createTransport(this.selected, c, { E: 50 });
+    }
+    
+    digTunnel(c) {
+        if(this.res.M < CONFIG.TUNNEL_COST.M || this.res.E < CONFIG.TUNNEL_COST.E) {
+            this.log('Insufficient resources', 'combat');
+            return;
+        }
+        if(c.height < 20) {
+            this.log('Too shallow for tunnel', 'combat');
+            return;
+        }
+        this.res.M -= CONFIG.TUNNEL_COST.M;
+        this.res.E -= CONFIG.TUNNEL_COST.E;
+        c.tunnel = (c.tunnel || 0) + 1;
+        c.matter -= 50;
+        this.log(`Dug tunnel at (${c.q}, ${c.r})`, 'signal');
+    }
+    
+    forgeSignal(c) {
+        if(this.res.I < CONFIG.FORGE_COST.I) {
+            this.log('Insufficient information', 'combat');
+            return;
+        }
+        this.res.I -= CONFIG.FORGE_COST.I;
+        this.emitSignal(c.q, c.r, CONFIG.SIGNAL_THERMAL, 25, { forged: true, fakeEntity: 'generator' });
+        this.log(`FORGED signal at (${c.q}, ${c.r})`, 'combat');
+    }
+    
+    jamSignals(c) {
+        if(this.res.E < CONFIG.JAM_COST.E || this.res.I < CONFIG.JAM_COST.I) {
+            this.log('Insufficient resources', 'combat');
+            return;
+        }
+        this.res.E -= CONFIG.JAM_COST.E;
+        this.res.I -= CONFIG.JAM_COST.I;
+        // Create EM interference in area
+        for(let dq = -5; dq <= 5; dq++) {
+            for(let dr = -5; dr <= 5; dr++) {
+                let cell = this.get(c.q + dq, c.r + dr);
+                if(cell) cell.emField = 100; // Jamming field
+            }
+        }
+        this.log(`JAMMING activated at (${c.q}, ${c.r})`, 'combat');
+    }
+    
+    update() {
+        if(this.pause) return;
+        this.tick++;
+        
+        // Energy decay (2nd law of thermodynamics)
+        this.res.E *= (1 - CONFIG.ENERGY_DECAY);
+        
+        // Entity production
+        for(let e of this.entities) {
+            if(e.production) {
+                if(e.production.E) {
+                    this.res.E += e.production.E;
+                    e.temperature += e.heatOutput * 0.1;
+                    // Production emits thermal signal
+                    if(this.tick % 10 === 0) {
+                        this.emitSignal(e.q, e.r, CONFIG.SIGNAL_THERMAL, e.heatOutput, { entity: e.id });
+                    }
+                }
+                if(e.production.M) {
+                    let cell = this.get(e.q, e.r);
+                    if(cell && cell.matter > 0) {
+                        let extracted = Math.min(e.production.M, cell.matter * 0.01);
+                        cell.matter -= extracted;
+                        this.res.M += extracted;
+                    }
+                }
+            }
+            // Temperature dissipation
+            e.temperature = 15 + (e.temperature - 15) * CONFIG.HEAT_DISSIPATION;
+        }
+        
+        // Signal propagation
+        for(let i = this.signals.length - 1; i >= 0; i--) {
+            let s = this.signals[i];
+            s.age++;
+            
+            // Signal travels at finite speed
+            let travelDist = Math.floor(s.age * CONFIG.SIGNAL_SPEED);
+            
+            // Propagate to new tiles
+            for(let dq = -travelDist; dq <= travelDist; dq++) {
+                for(let dr = -travelDist; dr <= travelDist; dr++) {
+                    let dist = (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
+                    if(dist > travelDist || dist < travelDist - 1) continue;
+                    
+                    let key = `${s.q+dq},${s.r+dr}`;
+                    if(s.propagated.has(key)) continue;
+                    
+                    let cell = this.get(s.q + dq, s.r + dr);
+                    if(!cell) continue;
+                    
+                    // Height blocks thermal signals
+                    if(s.type === CONFIG.SIGNAL_THERMAL) {
+                        let heightDiff = cell.height - this.get(s.q, s.r).height;
+                        if(heightDiff > 20 && dist > 2) continue; // Blocked by terrain
+                    }
+                    
+                    // EM jamming interferes with EM signals
+                    if(s.type === CONFIG.SIGNAL_EM && cell.emField > 50) continue;
+                    
+                    s.propagated.add(key);
+                    
+                    // Update player's knowledge (with delay)
+                    if(!s.data?.forged || Math.random() > 0.3) { // 30% chance to detect forgery
+                        this.knowledge.set(key, {
+                            type: s.type,
+                            strength: s.strength * Math.pow(0.9, dist),
+                            time: this.tick,
+                            confidence: s.data?.forged ? 0.5 : 0.9
+                        });
+                    }
+                }
+            }
+            
+            // Remove old signals
+            if(s.age > 100) {
+                this.signals.splice(i, 1);
+            }
+        }
+        
+        // Update transports
+        for(let i = this.transports.length - 1; i >= 0; i--) {
+            let t = this.transports[i];
+            t.progress += t.speed;
+            
+            // Move along path
+            let dist = Math.floor(t.progress);
+            // Simplified: direct movement for now
+            let dx = Math.sign(t.to.q - t.from.q);
+            let dy = Math.sign(t.to.r - t.from.r);
+            
+            if(Math.random() < 0.3) { // Movement each tick
+                let newQ = t.position.q + dx;
+                let newR = t.position.r + dy;
+                let cell = this.get(newQ, newR);
+                if(cell) {
+                    t.position.q = newQ;
+                    t.position.r = newR;
+                    // Emit movement signal
+                    this.emitSignal(newQ, newR, CONFIG.SIGNAL_MECHANICAL, t.signature, { transport: t.id });
+                }
+            }
+            
+            // Check arrival
+            if(t.position.q === t.to.q && t.position.r === t.to.r) {
+                // Deliver cargo
+                let dest = this.get(t.to.q, t.to.r);
+                if(dest && dest.entity) {
+                    for(let [res, amt] of Object.entries(t.cargo)) {
+                        dest.entity.storage[res] = (dest.entity.storage[res] || 0) + amt;
+                    }
+                }
+                this.transports.splice(i, 1);
+                this.log('Transport arrived', 'signal');
+            }
+        }
+        
+        // Decay EM fields
+        for(let c of this.grid) {
+            c.emField *= 0.95;
+            if(c.emField < 1) c.emField = 0;
+        }
+        
+        // Update UI
+        this.updateUI();
+    }
+    
+    updateUI() {
+        document.getElementById('e').textContent = Math.floor(this.res.E);
+        document.getElementById('m').textContent = Math.floor(this.res.M);
+        document.getElementById('i').textContent = Math.floor(this.res.I);
+        
+        document.getElementById('bar-e').style.width = Math.min(100, this.res.E / CONFIG.MAX_STORAGE * 100) + '%';
+        document.getElementById('bar-m').style.width = Math.min(100, this.res.M / CONFIG.MAX_STORAGE * 100) + '%';
+        document.getElementById('bar-i').style.width = Math.min(100, this.res.I / 1000 * 100) + '%';
+        
+        let day = Math.floor(this.tick / CONFIG.DAY_LENGTH);
+        let hour = Math.floor((this.tick % CONFIG.DAY_LENGTH) / (CONFIG.DAY_LENGTH / 24));
+        document.getElementById('time').textContent = `Day ${day} ${hour.toString().padStart(2, '0')}:00`;
+        
+        // Transport list
+        let tlist = this.transports.map(t => `#${t.id.toString().slice(-4)}: ${t.position.q},${t.position.r} -> ${t.to.q},${t.to.r}`).join('\n');
+        document.getElementById('transports').innerText = tlist || 'None';
+    }
+    
+    draw() {
+        let ctx = this.view === 'signal' ? this.sx : this.wx;
+        let canvas = this.view === 'signal' ? this.signal : this.world;
+        
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        for(let c of this.grid) {
+            let p = this.toScreen(c);
+            let s = CONFIG.HEX_SIZE * this.cam.z;
+            
+            if(p.x < -s || p.x > canvas.width + s || p.y < -s || p.y > canvas.height + s) continue;
+            
+            if(this.view === 'world') {
+                // Terrain
+                ctx.beginPath();
+                for(let i = 0; i < 6; i++) {
+                    let a = (Math.PI / 3) * i;
+                    let x = p.x + s * Math.cos(a);
+                    let y = p.y + s * Math.sin(a);
+                    if(i == 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                
+                // Height-based color
+                let h = c.height;
+                let r = 10 + h;
+                let g
