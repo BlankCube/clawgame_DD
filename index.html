@@ -1,571 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signal War - v6 Universal Matter</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #050508; color: #fff; overflow: hidden; font-size: 11px; }
-        #gameContainer { display: flex; height: 100vh; }
-        #canvasContainer { flex: 1; position: relative; overflow: hidden; }
-        #signalCanvas, #worldCanvas { position: absolute; top: 0; left: 0; }
-        #worldCanvas { cursor: grab; }
-        #worldCanvas:active { cursor: grabbing; }
-        #sidebar { width: 360px; background: #0a0a12; border-left: 2px solid #4a9; padding: 10px; overflow-y: auto; }
-        h1 { color: #4a9; font-size: 1.1em; margin-bottom: 5px; }
-        h2 { color: #4a9; font-size: 0.9em; margin: 10px 0 5px; border-bottom: 1px solid #333; padding-bottom: 3px; }
-        .section { background: rgba(255,255,255,0.03); border-radius: 4px; padding: 8px; margin-bottom: 8px; border: 1px solid #222; }
-        .stat-row { display: flex; justify-content: space-between; padding: 3px 6px; background: rgba(0,0,0,0.3); border-radius: 2px; margin: 2px 0; font-size: 10px; }
-        .resource-E { color: #fd0; }
-        .resource-M { color: #aaa; }
-        .resource-I { color: #0af; }
-        .signal-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
-        .signal-high { background: #f44; box-shadow: 0 0 6px #f44; }
-        .signal-med { background: #fa0; box-shadow: 0 0 4px #fa0; }
-        .signal-low { background: #4a9; box-shadow: 0 0 2px #4a9; }
-        button { padding: 4px 8px; border: none; border-radius: 3px; background: #2a4a3a; color: #fff; font-size: 10px; cursor: pointer; margin: 2px; border: 1px solid #3a5a4a; }
-        button:hover { background: #3a5a4a; }
-        button:disabled { background: #222; color: #555; border-color: #333; }
-        button.active { background: #4a9; border-color: #5aba5a; }
-        .mode-btn { background: #2a3a5a; border-color: #3a4a6a; }
-        .mode-btn:hover { background: #3a4a6a; }
-        .danger-btn { background: #4a2a2a; border-color: #6a3a3a; }
-        .danger-btn:hover { background: #6a3a3a; }
-        .log { max-height: 100px; overflow-y: auto; background: #000; padding: 5px; font-family: monospace; font-size: 9px; border: 1px solid #222; }
-        .log-entry { padding: 2px 0; border-bottom: 1px solid #111; }
-        .log-entry.signal { color: #fa0; }
-        .log-entry.combat { color: #f44; }
-        .log-entry.info { color: #4a9; }
-        .matter-bar { height: 4px; background: #222; margin-top: 2px; border-radius: 2px; overflow: hidden; }
-        .matter-fill { height: 100%; transition: width 0.3s; }
-        .layer-control { display: flex; gap: 5px; margin: 5px 0; }
-        .layer-btn { flex: 1; padding: 3px; font-size: 9px; background: #1a1a1a; border: 1px solid #333; }
-        .layer-btn.active { background: #2a4a3a; border-color: #4a9; }
-        #minimap { width: 100%; height: 80px; background: #000; border: 1px solid #333; margin: 5px 0; }
-        .concept-box { background: rgba(74,170,153,0.1); border-left: 3px solid #4a9; padding: 8px; margin: 5px 0; font-size: 10px; }
-    </style>
+<meta charset="UTF-8">
+<title>Signal War v6</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:#000;color:#0f0;overflow:hidden;font-size:12px}
+#game{display:flex;height:100vh}
+#canvas{flex:1;cursor:grab}
+#canvas:active{cursor:grabbing}
+#ui{width:350px;background:#0a0a0a;border-left:2px solid #0f0;padding:10px;overflow-y:auto}
+h1{color:#0f0;font-size:14px;margin-bottom:10px}
+.section{background:#111;padding:8px;margin-bottom:8px;border:1px solid #222}
+.row{display:flex;justify-content:space-between;padding:4px;font-size:11px}
+button{padding:5px 10px;background:#0f0;color:#000;border:none;cursor:pointer;margin:2px;font-family:monospace}
+button:hover{background:#0a0}
+button:disabled{background:#333;color:#666}
+button.active{background:#f00;color:#fff}
+.log{height:100px;overflow-y:auto;background:#000;padding:5px;font-size:10px;border:1px solid #222}
+.stat{color:#888}
+.val{color:#0f0}
+.alert{color:#f00}
+</style>
 </head>
 <body>
-    <div id="gameContainer">
-        <div id="canvasContainer">
-            <canvas id="signalCanvas"></canvas>
-            <canvas id="worldCanvas"></canvas>
-        </div>
-        <div id="sidebar">
-            <h1>📡 Signal War v6</h1>
-            
-            <div class="concept-box">
-                <strong>核心概念</strong>: 信号=情报，可被伪造。生产产生信号，暴露位置。后勤运输产生信号，可被拦截。
-            </div>
-
-            <div class="section">
-                <h2>基础元素</h2>
-                <div class="stat-row">
-                    <span class="resource-E">⚡ 能量 (E)</span>
-                    <span id="resE">0</span>
-                </div>
-                <div class="matter-bar"><div class="matter-fill" id="barE" style="width:0%; background:#fd0;"></div></div>
-                
-                <div class="stat-row" style="margin-top:6px;">
-                    <span class="resource-M">🔩 物质 (M)</span>
-                    <span id="resM">0</span>
-                </div>
-                <div class="matter-bar"><div class="matter-fill" id="barM" style="width:0%; background:#aaa;"></div></div>
-                
-                <div class="stat-row" style="margin-top:6px;">
-                    <span class="resource-I">📡 信息 (I)</span>
-                    <span id="resI">0</span>
-                </div>
-                <div class="matter-bar"><div class="matter-fill" id="barI" style="width:0%; background:#0af;"></div></div>
-            </div>
-
-            <div class="section">
-                <h2>信号层</h2>
-                <div class="layer-control">
-                    <button class="layer-btn active" id="layer-world" onclick="game.setLayer('world')">世界</button>
-                    <button class="layer-btn" id="layer-signal" onclick="game.setLayer('signal')">信号</button>
-                    <button class="layer-btn" id="layer-heatmap" onclick="game.setLayer('heatmap')">热图</button>
-                </div>
-                <div id="signalLegend">
-                    <div class="stat-row"><span class="signal-indicator signal-high"></span>高强度信号</div>
-                    <div class="stat-row"><span class="signal-indicator signal-med"></span>中强度信号</div>
-                    <div class="stat-row"><span class="signal-indicator signal-low"></span>低强度信号</div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>操作模式</h2>
-                <div style="display:flex; flex-wrap:wrap; gap:3px;">
-                    <button class="mode-btn" id="mode-select" onclick="game.setMode('select')">选择</button>
-                    <button class="mode-btn" id="mode-build" onclick="game.setMode('build')">建造</button>
-                    <button class="mode-btn" id="mode-destroy" onclick="game.setMode('destroy')">破坏</button>
-                    <button class="mode-btn" id="mode-transport" onclick="game.setMode('transport')">运输</button>
-                    <button class="mode-btn" id="mode-forge" onclick="game.setMode('forge')">伪造信号</button>
-                    <button class="mode-btn" id="mode-scout" onclick="game.setMode('scout')">侦察</button>
-                </div>
-                <div id="modeDetail" style="margin-top:8px; font-size:10px; color:#888;">选择模式查看详情</div>
-            </div>
-
-            <div class="section">
-                <h2>选中目标</h2>
-                <div id="targetInfo">点击地图选择目标</div>
-            </div>
-
-            <div class="section">
-                <h2>物流管理</h2>
-                <div id="logisticsInfo">
-                    <div class="stat-row"><span>活跃运输队</span><span id="transportCount">0</span></div>
-                    <div class="stat-row"><span>总库存价值</span><span id="inventoryValue">0</span></div>
-                    <div class="stat-row"><span>信号暴露度</span><span id="exposureLevel">低</span></div>
-                </div>
-            </div>
-
-            <div class="section">
-                <div style="display:flex; flex-wrap:wrap; gap:3px;">
-                    <button onclick="game.speed = game.speed==1?10:1">⏩ x10</button>
-                    <button onclick="game.pause = !game.pause">⏸️ 暂停</button>
-                    <button onclick="game.save()">💾 保存</button>
-                    <button class="danger-btn" onclick="game.reset()">🔄 重置</button>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>信号日志</h2>
-                <div class="log" id="log"></div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // ==========================================
-        // Signal War v6 - Universal Matter System
-        // ==========================================
-        // 核心设计：
-        // 1. 三种基础元素构成一切
-        // 2. 信号=情报，生产/移动/战斗都产生信号
-        // 3. 信息(I)可用于伪造信号
-        // 4. 物流运输产生可被拦截的信号
-        // 5. 所有物质都可破坏和建造
-
-        const CONFIG = {
-            MAP_W: 100, MAP_H: 100,          // 超大地图
-            HEX_SIZE: 16,                     // 小格子，大地图
-            TICK_RATE: 200,                   // 快速tick
-            CHUNK_SIZE: 10,                   // 区域划分
-            
-            // 基础元素
-            START_E: 1000,    // 能量
-            START_M: 500,     // 物质
-            START_I: 100,     // 信息
-            
-            // 信号衰减
-            SIGNAL_DECAY: 0.95,
-            SIGNAL_THRESHOLD: 0.1,
-            
-            // 生产成本
-            BUILD_COST_M: 50,
-            BUILD_COST_E: 20,
-            PRODUCE_SIGNAL: 5,  // 生产产生的信号强度
-            
-            // 运输
-            TRANSPORT_SPEED: 2,
-            TRANSPORT_CAPACITY: 100,
-            TRANSPORT_SIGNAL: 2,  // 运输产生的信号
-            
-            // 伪造
-            FORGE_COST_I: 50,
-            FORGE_DURATION: 100,
-            
-            // 侦察
-            SCOUT_RANGE: 10,
-            SCOUT_PRECISION: 0.8  // 侦察精度（无法100%确定真假）
-        };
-
-        // 物质类型 - 所有东西都由这三种构成
-        const MATTER = {
-            E: { name: '能量', color: '#fd0', signal: 1 },
-            M: { name: '物质', color: '#aaa', signal: 0.3 },
-            I: { name: '信息', color: '#0af', signal: 0 }
-        };
-
-        // 实体类型 - 由 E+M+I 组成
-        const ENTITIES = {
-            // 地形
-            terrain: { 
-                composition: { M: 100 }, 
-                destructible: true,
-                signal: 0
-            },
-            
-            // 生产建筑 - 产生E，但产生强信号
-            generator: { 
-                composition: { M: 200, E: 50 },
-                output: { E: 5 },
-                signal: 10,
-                destructible: true
-            },
-            
-            // 精炼厂 - 将M转化为E
-            refinery: {
-                composition: { M: 300, E: 100 },
-                convert: { M: -10, E: 8 },
-                signal: 8,
-                destructible: true
-            },
-            
-            // 信息站 - 产生I，低信号
-            infoStation: {
-                composition: { M: 150, E: 100, I: 20 },
-                output: { I: 2 },
-                signal: 3,
-                destructible: true
-            },
-            
-            // 仓库 - 存储资源
-            storage: {
-                composition: { M: 400 },
-                capacity: 1000,
-                signal: 2,
-                destructible: true
-            },
-            
-            // 运输单位 - 移动时产生信号
-            transport: {
-                composition: { M: 50, E: 30 },
-                speed: CONFIG.TRANSPORT_SPEED,
-                capacity: CONFIG.TRANSPORT_CAPACITY,
-                moveSignal: CONFIG.TRANSPORT_SIGNAL,
-                destructible: true
-            },
-            
-            // 战斗单位
-            combat: {
-                composition: { M: 100, E: 50, I: 10 },
-                atk: 20,
-                def: 10,
-                hp: 100,
-                moveSignal: 5,
-                attackSignal: 20,
-                destructible: true
-            },
-            
-            // 信号伪造器 - 产生假信号
-            forger: {
-                composition: { M: 200, E: 100, I: 100 },
-                forgeCost: { I: CONFIG.FORGE_COST_I },
-                signal: 1,
-                destructible: true
-            },
-            
-            // 侦察单位 - 低信号，可识别伪造
-            scout: {
-                composition: { M: 30, E: 20, I: 30 },
-                detectRange: CONFIG.SCOUT_RANGE,
-                detectPrecision: CONFIG.SCOUT_PRECISION,
-                moveSignal: 1,
-                destructible: true
-            }
-        };
-
-        class SignalWar {
-            constructor() {
-                this.worldCanvas = document.getElementById('worldCanvas');
-                this.signalCanvas = document.getElementById('signalCanvas');
-                this.wCtx = this.worldCanvas.getContext('2d');
-                this.sCtx = this.signalCanvas.getContext('2d');
-                
-                this.camera = { x: 0, y: 0, zoom: 1 };
-                this.tick = 0;
-                this.speed = 1;
-                this.pause = false;
-                
-                // 资源
-                this.resources = { E: CONFIG.START_E, M: CONFIG.START_M, I: CONFIG.START_I };
-                this.maxStorage = 5000;
-                
-                // 地图数据
-                this.grid = [];
-                this.signals = [];  // 信号层
-                this.entities = []; // 所有实体
-                this.transports = []; // 运输队
-                
-                // 玩家状态
-                this.mode = 'select';
-                this.selected = null;
-                this.layer = 'world';
-                
-                this.init();
-                this.setup();
-                this.start();
-            }
-
-            init() {
-                // 初始化地图 - 纯物质地形
-                for(let q = 0; q < CONFIG.MAP_W; q++) {
-                    for(let r = 0; r < CONFIG.MAP_H; r++) {
-                        // 使用噪声生成地形高度
-                        const noise = this.noise(q * 0.05, r * 0.05);
-                        const height = Math.floor((noise + 1) * 50);
-                        
-                        this.grid.push({
-                            q, r,
-                            x: 0, y: 0,  // 屏幕坐标，稍后计算
-                            height,
-                            matter: height * 10,  // 地形含有的物质量
-                            entity: null,  // 该位置的实体
-                            owner: null    // 所有者
-                        });
-                        
-                        // 初始化信号层
-                        this.signals.push({
-                            q, r,
-                            strength: 0,   // 信号强度
-                            source: null,  // 信号源
-                            isFake: false, // 是否伪造
-                            age: 0         // 信号年龄
-                        });
-                    }
-                }
-                
-                // 玩家起始位置 - 中心区域
-                const centerQ = Math.floor(CONFIG.MAP_W / 2);
-                const centerR = Math.floor(CONFIG.MAP_H / 2);
-                
-                // 创建起始基地
-                this.createEntity(centerQ, centerR, 'generator', 'player');
-                this.createEntity(centerQ + 1, centerR, 'storage', 'player');
-                this.createEntity(centerQ, centerR + 1, 'refinery', 'player');
-                
-                this.calcPositions();
-            }
-
-            noise(x, y) {
-                return Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1;
-            }
-
-            calcPositions() {
-                const h = Math.sqrt(3) * CONFIG.HEX_SIZE;
-                for(const cell of this.grid) {
-                    cell.x = CONFIG.HEX_SIZE * 1.5 * cell.q;
-                    cell.y = h * (cell.r + cell.q * 0.5);
-                }
-            }
-
-            setup() {
-                const resize = () => {
-                    const container = this.worldCanvas.parentElement;
-                    this.worldCanvas.width = container.clientWidth;
-                    this.worldCanvas.height = container.clientHeight;
-                    this.signalCanvas.width = container.clientWidth;
-                    this.signalCanvas.height = container.clientHeight;
-                };
-                window.addEventListener('resize', resize);
-                resize();
-                
-                // 鼠标控制
-                let dragging = false;
-                let lastPos = { x: 0, y: 0 };
-                
-                this.worldCanvas.addEventListener('mousedown', e => {
-                    dragging = true;
-                    lastPos = { x: e.clientX, y: e.clientY };
-                });
-                
-                this.worldCanvas.addEventListener('mousemove', e => {
-                    if(dragging) {
-                        this.camera.x += e.clientX - lastPos.x;
-                        this.camera.y += e.clientY - lastPos.y;
-                        lastPos = { x: e.clientX, y: e.clientY };
-                    }
-                });
-                
-                this.worldCanvas.addEventListener('mouseup', () => dragging = false);
-                
-                this.worldCanvas.addEventListener('wheel', e => {
-                    e.preventDefault();
-                    const factor = e.deltaY > 0 ? 0.9 : 1.1;
-                    this.camera.zoom = Math.max(0.2, Math.min(5, this.camera.zoom * factor));
-                });
-                
-                this.worldCanvas.addEventListener('click', e => this.onClick(e));
-            }
-
-            get(q, r) {
-                if(q < 0 || q >= CONFIG.MAP_W || r < 0 || r >= CONFIG.MAP_H) return null;
-                return this.grid[r * CONFIG.MAP_W + q];
-            }
-
-            getSignal(q, r) {
-                if(q < 0 || q >= CONFIG.MAP_W || r < 0 || r >= CONFIG.MAP_H) return null;
-                return this.signals[r * CONFIG.MAP_W + q];
-            }
-
-            toScreen(q, r) {
-                const h = Math.sqrt(3) * CONFIG.HEX_SIZE;
-                const x = CONFIG.HEX_SIZE * 1.5 * q;
-                const y = h * (r + q * 0.5);
-                return {
-                    x: x * this.camera.zoom + this.camera.x + this.worldCanvas.width / 2,
-                    y: y * this.camera.zoom + this.camera.y + this.worldCanvas.height / 2
-                };
-            }
-
-            toHex(sx, sy) {
-                const x = (sx - this.camera.x - this.worldCanvas.width / 2) / this.camera.zoom;
-                const y = (sy - this.camera.y - this.worldCanvas.height / 2) / this.camera.zoom;
-                const h = Math.sqrt(3) * CONFIG.HEX_SIZE;
-                const q = Math.round((2/3) * x / CONFIG.HEX_SIZE);
-                const r = Math.round((-1/3) * x / CONFIG.HEX_SIZE + y / h);
-                return { q, r };
-            }
-
-            createEntity(q, r, type, owner) {
-                const cell = this.get(q, r);
-                if(!cell || cell.entity) return null;
-                
-                const template = ENTITIES[type];
-                const entity = {
-                    id: Date.now() + Math.random(),
-                    type,
-                    owner,
-                    q, r,
-                    ...template,
-                    hp: template.composition.M + template.composition.E || 100,
-                    currentStorage: { E: 0, M: 0, I: 0 }
-                };
-                
-                cell.entity = entity;
-                this.entities.push(entity);
-                
-                // 产生初始信号
-                this.emitSignal(q, r, template.signal || 1, entity, false);
-                
-                return entity;
-            }
-
-            destroyEntity(entity) {
-                const cell = this.get(entity.q, entity.r);
-                if(cell) cell.entity = null;
-                
-                // 返还部分物质
-                if(entity.composition) {
-                    this.resources.M += Math.floor((entity.composition.M || 0) * 0.5);
-                    this.resources.E += Math.floor((entity.composition.E || 0) * 0.3);
-                }
-                
-                this.entities = this.entities.filter(e => e !== entity);
-                
-                // 产生强信号（战斗/破坏信号）
-                this.emitSignal(entity.q, entity.r, 50, null, false);
-                
-                this.log(`${entity.type} 被摧毁`, 'combat');
-            }
-
-            emitSignal(q, r, strength, source, isFake) {
-                // 信号以源点为中心扩散
-                const range = Math.ceil(strength / 2);
-                for(let dq = -range; dq <= range; dq++) {
-                    for(let dr = -range; dr <= range; dr++) {
-                        const dist = (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
-                        if(dist > range) continue;
-                        
-                        const signal = this.getSignal(q + dq, r + dr);
-                        if(signal) {
-                            const decay = Math.pow(CONFIG.SIGNAL_DECAY, dist);
-                            const localStrength = strength * decay;
-                            
-                            if(localStrength > signal.strength) {
-                                signal.strength = localStrength;
-                                signal.source = source;
-                                signal.isFake = isFake;
-                                signal.age = 0;
-                            }
-                        }
-                    }
-                }
-            }
-
-            forgeSignal(q, r, strength) {
-                if(this.resources.I < CONFIG.FORGE_COST_I) {
-                    this.log('信息不足，无法伪造信号', 'info');
-                    return;
-                }
-                
-                this.resources.I -= CONFIG.FORGE_COST_I;
-                this.emitSignal(q, r, strength, null, true);
-                this.log(`在 (${q},${r}) 伪造了强度 ${strength} 的信号`, 'signal');
-            }
-
-            setMode(mode) {
-                this.mode = mode;
-                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                document.getElementById('mode-' + mode)?.classList.add('active');
-                
-                const details = {
-                    select: '选择实体查看详情，或框选多个单位',
-                    build: `消耗 ${CONFIG.BUILD_COST_M}M ${CONFIG.BUILD_COST_E}E 建造建筑（产生信号）',
-                    destroy: '破坏地形或建筑，回收50%物质',
-                    transport: '创建运输队运送资源（移动产生信号）',
-                    forge: `消耗 ${CONFIG.FORGE_COST_I}I 伪造信号欺骗敌人',
-                    scout: '派遣侦察单位确认信号真假'
-                };
-                document.getElementById('modeDetail').textContent = details[mode] || '';
-            }
-
-            setLayer(layer) {
-                this.layer = layer;
-                document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
-                document.getElementById('layer-' + layer)?.classList.add('active');
-            }
-
-            onClick(e) {
-                const rect = this.worldCanvas.getBoundingClientRect();
-                const pos = this.toHex(e.clientX - rect.left, e.clientY - rect.top);
-                const cell = this.get(pos.q, pos.r);
-                
-                if(!cell) return;
-                
-                switch(this.mode) {
-                    case 'select':
-                        this.selected = cell.entity;
-                        this.updateTargetInfo(cell);
-                        break;
-                        
-                    case 'build':
-                        if(!cell.entity && this.resources.M >= CONFIG.BUILD_COST_M && this.resources.E >= CONFIG.BUILD_COST_E) {
-                            this.resources.M -= CONFIG.BUILD_COST_M;
-                            this.resources.E -= CONFIG.BUILD_COST_E;
-                            this.createEntity(pos.q, pos.r, 'generator', 'player');
-                            this.log(`建造完成 (${pos.q},${pos.r})`, 'info');
-                        }
-                        break;
-                        
-                    case 'destroy':
-                        if(cell.entity) {
-                            this.destroyEntity(cell.entity);
-                        } else if(cell.matter > 0) {
-                            // 挖掘地形
-                            const extracted = Math.min(50, cell.matter);
-                            cell.matter -= extracted;
-                            cell.height = Math.floor(cell.matter / 10);
-                            this.resources.M += extracted;
-                            this.emitSignal(pos.q, pos.r, 5, null, false);
-                            this.log(`挖掘地形，获得 ${extracted}M`, 'info');
-                        }
-                        break;
-                        
-                    case 'forge':
-                        this.forgeSignal(pos.q, pos.r, 20);
-                        break;
-                        
-                    case 'scout':
-                        this.createEntity(pos.q, pos.r, 'scout', 'player');
-                        break;
-                }
-            }
-
-            updateTargetInfo(cell) {
-                const info = document.getElementById('targetInfo');
-                let html = `<div class="stat-row"><span>坐标</span><span>(${cell.q}, ${cell.r})</span></div>`;
-                html += `<div class="stat-row"><span>高度</
+<div id="game">
+<canvas id="canvas"></canvas>
+<div id="ui">
+<h1>📡 SIGNAL WAR v6</h1>
+<div class="section">
+<div class="row"><span class="stat">⚡ ENERGY</span><span class="val" id="e">0</span></div>
+<div class="row"><span class="stat">🔩 MATTER</span><span class="val" id="m">0</span></div>
+<div class="row"><span class="stat">📡 INFO</span><span class="val" id="i">0</span></div>
+</div>
+<div class="section">
+<div class="row"><span class="stat">SIGNAL LAYER</span><span class="val" id="layer">OFF</span></div>
+<button onclick="game.toggleLayer()">TOGGLE SIGNAL VIEW</button>
+</div>
+<div class="section">
+<button id="btn-select" onclick="game.setMode('select')">SELECT</button>
+<button id="btn-build" onclick="game.setMode('build')">BUILD GEN</button>
+<button id="btn-destroy" onclick="game.setMode('destroy')">DESTROY</button>
+<button id="btn-forge" onclick="game.setMode('forge')">FORGE SIGNAL</button>
+<button id="btn-scout" onclick="game.setMode('scout')">SCOUT</button>
+</div>
+<div class="section">
+<div id="info">Click to select</div>
+</div>
+<div class="section">
+<button onclick="game.speed=game.speed==1?10:1">SPEED x10</button>
+<button onclick="game.save()">SAVE</button>
+<button onclick="game.load()">LOAD</button>
+<button onclick="game.reset()">RESET</button>
+</div>
+<div class="log" id="log"></div>
+</div>
+</div>
+<script>
+const CONFIG={MAP_W:80,MAP_H:80,HEX_SIZE:12,TICK:200,START_E:500,START_M:300,START_I:50,SIGNAL_DECAY:0.9};
+class Game{constructor(){this.c=document.getElementById('canvas');this.x=this.c.getContext('2d');this.cam={x:0,y:0,z:1};this.tick=0;this.speed=1;this.showSignal=false;this.mode='select';this.res={E:CONFIG.START_E,M:CONFIG.START_M,I:CONFIG.START_I};this.grid=[];this.signals=[];this.entities=[];this.selected=null;this.init();this.setup();this.start()}
+init(){for(let q=0;q<CONFIG.MAP_W;q++){for(let r=0;r<CONFIG.MAP_H;r++){let h=Math.floor((Math.sin(q*0.1)*Math.cos(r*0.1)+1)*30);this.grid.push({q,r,x:0,y:0,h,m:h*10,e:null});this.signals.push({s:0,f:false,a:0})}}let cx=Math.floor(CONFIG.MAP_W/2),cy=Math.floor(CONFIG.MAP_H/2);this.createEntity(cx,cy,'gen');this.createEntity(cx+1,cy,'storage');this.calcPos()}
+calcPos(){let h=Math.sqrt(3)*CONFIG.HEX_SIZE;for(let c of this.grid){c.x=CONFIG.HEX_SIZE*1.5*c.q;c.y=h*(c.r+c.q*0.5)}}
+setup(){let rs=()=>{this.c.width=this.c.parentElement.clientWidth;this.c.height=this.c.parentElement.clientHeight};window.addEventListener('resize',rs);rs();let d=false,l={x:0,y:0};this.c.addEventListener('mousedown',e=>{d=true;l={x:e.clientX,y:e.clientY}});this.c.addEventListener('mousemove',e=>{if(d){this.cam.x+=e.clientX-l.x;this.cam.y+=e.clientY-l.y;l={x:e.clientX,y:e.clientY}}});this.c.addEventListener('mouseup',()=>d=false);this.c.addEventListener('wheel',e=>{e.preventDefault();this.cam.z*=e.deltaY>0?0.9:1.1;this.cam.z=Math.max(0.3,Math.min(5,this.cam.z))});this.c.addEventListener('click',e=>this.onClick(e))}
+get(q,r){if(q<0||q>=CONFIG.MAP_W||r<0||r>=CONFIG.MAP_H)return null;return this.grid[r*CONFIG.MAP_W+q]}
+getSig(q,r){if(q<0||q>=CONFIG.MAP_W||r<0||r>=CONFIG.MAP_H)return null;return this.signals[r*CONFIG.MAP_W+q]}
+toScreen(q,r){let h=Math.sqrt(3)*CONFIG.HEX_SIZE;return{x:(CONFIG.HEX_SIZE*1.5*q)*this.cam.z+this.cam.x+this.c.width/2,y:(h*(r+q*0.5))*this.cam.z+this.cam.y+this.c.height/2}}
+toHex(sx,sy){let x=(sx-this.cam.x-this.c.width/2)/this.cam.z;let y=(sy-this.cam.y-this.c.height/2)/this.cam.z;let h=Math.sqrt(3)*CONFIG.HEX_SIZE;return{q:Math.round((2/3)*x/CONFIG.HEX_SIZE),r:Math.round((-1/3)*x/CONFIG.HEX_SIZE+y/h)}}
+createEntity(q,r,type){let c=this.get(q,r);if(!c||c.e)return;let e={id:Date.now(),type,q,r,hp:100,owner:'player',storage:{E:0,M:0,I:0}};if(type=='gen'){e.prod={E:5};e.sig=8;e.cost={M:100,E:50}}else if(type=='storage'){e.cap=1000;e.sig=2;e.cost={M:200}}else if(type=='scout'){e.move=3;e.sig=1;e.vision=8;e.cost={M:30,E:20,I:20}}c.e=e;this.entities.push(e);this.emitSig(q,r,e.sig||5);return e}
+emitSig(q,r,str,fake=false){let range=Math.ceil(str/2);for(let dq=-range;dq<=range;dq++){for(let dr=-range;dr<=range;dr++){let dist=(Math.abs(dq)+Math.abs(dr)+Math.abs(dq+dr))/2;if(dist>range)continue;let s=this.getSig(q+dq,r+dr);if(s){let local=str*Math.pow(CONFIG.SIGNAL_DECAY,dist);if(local>s.s){s.s=local;s.f=fake;s.a=0}}}}}
+setMode(m){this.mode=m;document.querySelectorAll('button').forEach(b=>b.classList.remove('active'));document.getElementById('btn-'+m)?.classList.add('active')}
+toggleLayer(){this.showSignal=!this.showSignal;document.getElementById('layer').textContent=this.showSignal?'ON':'OFF'}
+onClick(e){let r=this.c.getBoundingClientRect();let p=this.toHex(e.clientX-r.left,e.clientY-r.top);let c=this.get(p.q,p.r);if(!c)return;switch(this.mode){case'select':this.selected=c.e;this.updateInfo(c);break;case'build':if(!c.e&&this.res.M>=100&&this.res.E>=50){this.res.M-=100;this.res.E-=50;this.createEntity(p.q,p.r,'gen');this.log('Generator built')}break;case'destroy':if(c.e){this.destroy(c.e)}else if(c.m>0){let ex=Math.min(50,c.m);c.m-=ex;c.h=Math.floor(c.m/10);this.res.M+=ex;this.emitSig(p.q,p.r,3);this.log('Extracted '+ex+'M')}break;case'forge':if(this.res.I>=20){this.res.I-=20;this.emitSig(p.q,p.r,15,true);this.log('FAKE SIGNAL at ('+p.q+','+p.r+')','alert')}break;case'scout':if(this.res.M>=30&&this.res.E>=20&&this.res.I>=20){this.res.M-=30;this.res.E-=20;this.res.I-=20;this.createEntity(p.q,p.r,'scout');this.log('Scout deployed')}break}}
+destroy(e){let c=this.get(e.q,e.r);if(c)c.e=null;this.entities=this.entities.filter(x=>x!==e);if(e.cost){this.res.M+=Math.floor((e.cost.M||0)*0.5);this.res.E+=Math.floor((e.cost.E||0)*0.3)}this.emitSig(e.q,e.r,30);this.log(e.type+' destroyed')}
+update(){this.tick++;for(let e of this.entities){if(e.prod){if(e.prod.E&&this.res.E<5000)this.res.E+=e.prod.E;if(e.prod.M)this.res.M+=e.prod.M;if(e.prod.I)this.res.I+=e.prod.I;this.emitSig(e.q,e.r,e.sig||5)}}for(let s of this.signals){s.s*=CONFIG.SIGNAL_DECAY;s.a++;if(s.s<0.1)s.s=0}document.getElementById('e').textContent=Math.floor(this.res.E);document.getElementById('m').textContent=Math.floor(this.res.M);document.getElementById('i').textContent=Math.floor(this.res.I)}
+draw(){this.x.fillStyle='#000';this.x.fillRect(0,0,this.c.width,this.c.height);for(let c of this.grid){let p=this.toScreen(c.q,c.r);let s=CONFIG.HEX_SIZE*this.cam.z;if(p.x<-s||p.x>this.c.width+s||p.y<-s||p.y>this.c.height+s)continue;let sig=this.getSig(c.q,c.r);if(this.showSignal&&sig.s>1){let intensity=Math.min(1,sig.s/20);this.x.fillStyle=`rgba(${sig.f?255:255},${sig.f?100:0},0,${intensity*0.5})`;this.x.beginPath();this.x.arc(p.x,p.y,s*1.5,0,Math.PI*2);this.x.fill()}this.x.beginPath();for(let i=0;i<6;i++){let a=(Math.PI/3)*i;let x=p.x+s*Math.cos(a);let y=p.y+s*Math.sin(a);if(i==0)this.x.moveTo(x,y);else this.x.lineTo(x,y)}this.x.closePath();let h=c.h;this.x.fillStyle=`rgb(${20+h},${30+h/2},${20+h/3})`;this.x.fill();if(c.e){let colors={gen:'#0f0',storage:'#00f',scout:'#ff0'};this.x.fillStyle=colors[c.e.type]||'#fff';this.x.beginPath();this.x.arc(p.x,p.y,s*0.6,0,Math.PI*2);this.x.fill()}this.x.strokeStyle='#222';this.x.lineWidth=0.5;this.x.stroke()}requestAnimationFrame(()=>this.draw())}
+updateInfo(c){let h='Position: ('+c.q+','+c.r+')<br>Height: '+c.h+'<br>Matter: '+c.m;let s=this.getSig(c.q,c.r);h+='<br>Signal: '+(s.s>1?s.s.toFixed(1)+(s.f?' [FAKE]':''):'none');if(c.e)h+='<br>Entity: '+c.e.type+'<br>HP: '+c.e.hp;document.getElementById('info').innerHTML=h}
+log(m,c=''){let l=document.getElementById('log');let e=document.createElement('div');e.textContent='['+this.tick+'] '+m;e.className=c;l.insertBefore(e,l.firstChild);if(l.children.length>20)l.lastChild.remove()}
+save(){localStorage.setItem('sw6',JSON.stringify({tick:this.tick,res:this.res,entities:this.entities.map(e=>({type:e.type,q:e.q,r:e.r}))}));this.log('SAVED')}
+load(){let d=localStorage.getItem('sw6');if(!d)return;let data=JSON.parse(d);this.tick=data.tick||0;this.res=data.res||{E:500,M:300,I:50};this.entities=[];for(let c of this.grid)c.e=null;for(let e of data.entities||[]){this.createEntity(e.q,e.r,e.type)}this.log('LOADED')}
+reset(){if(confirm('RESET?')){this.init();this.log('RESET')}}
+start(){setInterval(()=>{for(let i=0;i<this.speed;i++)this.update()},CONFIG.TICK);this.draw()}}
+let game=new Game();
+</script>
+</body>
+</html>
