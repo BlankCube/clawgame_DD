@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClawCraft v3 - War</title>
+    <title>ClawCraft v4 - Empire</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #0a0a15; color: #fff; overflow: hidden; font-size: 11px; }
@@ -11,282 +11,171 @@
         #canvasContainer { flex: 1; position: relative; overflow: hidden; }
         #gameCanvas { cursor: grab; display: block; }
         #gameCanvas:active { cursor: grabbing; }
-        #sidebar { width: 300px; background: #1a1a2e; border-left: 2px solid #e94560; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        h1 { color: #e94560; font-size: 1.2em; margin-bottom: 6px; }
-        h2 { color: #e94560; font-size: 0.95em; margin-bottom: 5px; }
-        .section { background: rgba(255,255,255,0.05); border-radius: 5px; padding: 8px; }
-        .stat-row { display: flex; justify-content: space-between; margin: 3px 0; padding: 4px 6px; background: rgba(0,0,0,0.3); border-radius: 3px; font-size: 10px; }
-        .res-bar { height: 6px; background: #333; border-radius: 3px; margin-top: 3px; overflow: hidden; }
-        .res-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+        #sidebar { width: 320px; background: #1a1a2e; border-left: 2px solid #e94560; padding: 10px; overflow-y: auto; }
+        h1 { color: #e94560; font-size: 1.2em; }
+        h2 { color: #e94560; font-size: 0.95em; }
+        .section { background: rgba(255,255,255,0.05); border-radius: 5px; padding: 8px; margin-bottom: 8px; }
+        .stat-row { display: flex; justify-content: space-between; padding: 4px 6px; background: rgba(0,0,0,0.3); border-radius: 3px; margin: 3px 0; font-size: 10px; }
         button { padding: 5px 8px; border: none; border-radius: 3px; background: #e94560; color: white; font-size: 10px; cursor: pointer; margin: 2px; }
         button:hover { background: #ff6b6b; }
-        button:disabled { background: #444; opacity: 0.5; }
-        button.active { background: #4a9; }
-        .btn-group { display: flex; flex-wrap: wrap; gap: 3px; }
         .mini-btn { padding: 3px 6px; font-size: 9px; background: #2a4a6a; }
-        .tech-btn { padding: 4px 6px; font-size: 9px; background: #4a2a6a; }
-        .tech-btn.unlocked { background: #4a9; }
-        .log { max-height: 60px; overflow-y: auto; background: #0a0a15; border-radius: 3px; padding: 5px; font-family: monospace; font-size: 9px; }
+        .log { max-height: 60px; overflow-y: auto; background: #0a0a15; padding: 5px; font-family: monospace; font-size: 9px; }
         .alert { color: #f44; animation: blink 1s infinite; }
         @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0.3; } }
-        .tabs { display: flex; gap: 4px; margin-bottom: 6px; }
-        .tab { padding: 4px 8px; background: #333; cursor: pointer; border-radius: 3px; }
-        .tab.active { background: #e94560; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <div id="canvasContainer"><canvas id="gameCanvas"></canvas></div>
         <div id="sidebar">
-            <h1>🦞 ClawCraft v3</h1>
-            
+            <h1>🦞 ClawCraft v4</h1>
             <div class="section">
                 <div class="stat-row"><span>⚡ 能量</span><span id="resE">0/0</span></div>
-                <div class="res-bar"><div class="res-fill" id="barE" style="width:0%; background:#fd0;"></div></div>
-                <div class="stat-row" style="margin-top:6px;"><span>🪙 黄金</span><span id="resG">0</span></div>
-                <div class="stat-row"><span>👤 单位</span><span id="resU">0/0</span></div>
+                <div class="stat-row"><span>🪙 黄金</span><span id="resG">0</span></div>
+                <div class="stat-row"><span>人口</span><span id="resP">0/0</span></div>
+                <div class="stat-row"><span>得分</span><span id="resS">0</span></div>
                 <div class="stat-row alert" id="enemyAlert" style="display:none;"><span>⚠️ 敌人!</span><span id="enemyCount">0</span></div>
-                <div style="color:#888; font-size:9px;">Tick: <span id="tickInfo">0</span></div>
+                <div style="color:#888; font-size:9px;">Tick: <span id="tickInfo">0</span> | 波次: <span id="waveInfo">1</span></div>
             </div>
-
-            <div class="tabs">
-                <div class="tab active" onclick="showTab('build')">建造</div>
-                <div class="tab" onclick="showTab('tech')">科技</div>
-                <div class="tab" onclick="showTab('unit')">单位</div>
-            </div>
-
-            <div id="tab-build" class="tab-content active">
-                <div class="section">
-                    <div class="btn-group">
-                        <button class="mini-btn" onclick="game.setBuild('mineE')">能量矿 50E</button>
-                        <button class="mini-btn" onclick="game.setBuild('mineG')">黄金矿 80E</button>
-                        <button class="mini-btn" onclick="game.setBuild('tower')">防御塔 150E</button>
-                        <button class="mini-btn" onclick="game.setBuild('barracks')">兵营 100E</button>
-                    </div>
-                    <button onclick="game.cancelBuild()" style="margin-top:5px; width:100%;">取消</button>
+            <div class="section">
+                <h2>建造</h2>
+                <div style="display:flex; flex-wrap:wrap; gap:3px;">
+                    <button class="mini-btn" onclick="game.build('mineE')">能量矿 50E</button>
+                    <button class="mini-btn" onclick="game.build('mineG')">黄金矿 80E</button>
+                    <button class="mini-btn" onclick="game.build('house')">民居 40E</button>
+                    <button class="mini-btn" onclick="game.build('barracks')">兵营 100E</button>
+                    <button class="mini-btn" onclick="game.build('tower')">防御塔 150E</button>
+                    <button class="mini-btn" onclick="game.build('wall')">城墙 30E</button>
                 </div>
             </div>
-
-            <div id="tab-tech" class="tab-content">
-                <div class="section">
-                    <div class="btn-group">
-                        <button class="tech-btn" id="techAtk" onclick="game.unlockTech('atk',100)">攻击+20% 100G</button>
-                        <button class="tech-btn" id="techDef" onclick="game.unlockTech('def',100)">防御+20% 100G</button>
-                        <button class="tech-btn" id="techSpd" onclick="game.unlockTech('spd',150)">速度+1 150G</button>
-                    </div>
+            <div class="section">
+                <h2>单位</h2>
+                <div id="unitList">无单位</div>
+                <div style="display:flex; flex-wrap:wrap; gap:3px; margin-top:5px;">
+                    <button onclick="game.spawn('warrior')">战士 30E</button>
+                    <button onclick="game.spawn('archer')">弓箭手 40E</button>
+                    <button onclick="game.spawn('tank')">坦克 50E</button>
+                    <button onclick="game.spawn('worker')">工人 20E</button>
                 </div>
             </div>
-
-            <div id="tab-unit" class="tab-content">
-                <div class="section">
-                    <div id="unitList">无单位</div>
-                    <div class="btn-group" style="margin-top:6px;">
-                        <button onclick="game.spawnUnit()">生成 30E</button>
-                        <button onclick="game.toggleMove()">移动</button>
-                        <button onclick="game.toggleAttack()">攻击</button>
-                    </div>
-                </div>
-            </div>
-
             <div class="section">
                 <div id="hexDetail">点击地图</div>
             </div>
-
             <div class="section">
-                <div class="btn-group">
-                    <button onclick="game.speed = game.speed === 1 ? 3 : 1">加速</button>
+                <div style="display:flex; flex-wrap:wrap; gap:3px;">
+                    <button onclick="game.speed = game.speed==1?5:1">加速</button>
                     <button onclick="game.save()">保存</button>
                     <button onclick="game.load()">加载</button>
                     <button onclick="game.reset()">重置</button>
                 </div>
             </div>
-
             <div class="section"><div class="log" id="log"></div></div>
         </div>
     </div>
 
     <script>
-        function showTab(n) {
-            document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById('tab-'+n).classList.add('active');
-        }
-
-        const CONFIG = { MAP_W: 20, MAP_H: 20, HEX_SIZE: 28, TICK_RATE: 1000, MAX_UNITS: 10, START_E: 300, START_G: 50, ENEMY_RATE: 20 };
-        const BUILD = { mineE: {n:'能量矿',c:50,e:5}, mineG: {n:'黄金矿',c:80,g:2}, tower: {n:'防御塔',c:150,atk:15}, barracks: {n:'兵营',c:100} };
+        const CONFIG = { MAP_W: 30, MAP_H: 30, HEX_SIZE: 26, TICK_RATE: 600, MAX_UNITS: 20, MAX_POP: 50, START_E: 500, START_G: 100, ENEMY_RATE: 15 };
+        
+        const UNITS = {
+            warrior: { n: '战士', atk: 15, def: 5, hp: 100, move: 2, range: 1, cost: 30 },
+            archer: { n: '弓箭手', atk: 12, def: 3, hp: 70, move: 2, range: 3, cost: 40 },
+            tank: { n: '坦克', atk: 8, def: 10, hp: 150, move: 1, range: 1, cost: 50 },
+            worker: { n: '工人', atk: 5, def: 2, hp: 60, move: 2, range: 1, cost: 20 }
+        };
+        
+        const BUILD = { mineE: { n: '能量矿', c: 50, e: 8 }, mineG: { n: '黄金矿', c: 80, g: 3 }, house: { n: '民居', c: 40, pop: 5 }, barracks: { n: '兵营', c: 100 }, tower: { n: '防御塔', c: 150, atk: 20, range: 4 }, wall: { n: '城墙', c: 30, hp: 300 } };
 
         class Game {
             constructor() {
                 this.canvas = document.getElementById('gameCanvas');
                 this.ctx = this.canvas.getContext('2d');
-                this.camera = {x:0,y:0,zoom:1};
-                this.tick = 0; this.speed = 1;
+                this.camera = { x: 0, y: 0, zoom: 1 };
+                this.tick = 0; this.speed = 1; this.wave = 1;
                 this.tech = {}; this.enemies = [];
+                this.stats = { kills: 0, builds: 0 };
+                this.achievements = new Set();
+                this.particles = [];
                 this.reset(); this.setup(); this.start();
             }
 
             reset() {
-                this.energy = CONFIG.START_E; this.gold = CONFIG.START_G; this.maxE = 1000;
-                this.units = []; this.enemies = []; this.selected = null;
-                this.mode = null;
+                this.energy = CONFIG.START_E; this.maxE = 1000;
+                this.gold = CONFIG.START_G;
+                this.pop = 0; this.maxPop = 10;
+                this.units = []; this.enemies = [];
+                this.selected = null; this.mode = null;
+                this.score = 0;
+                
                 this.grid = [];
-                for(let q=0; q<CONFIG.MAP_W; q++) {
-                    for(let r=0; r<CONFIG.MAP_H; r++) {
-                        this.grid.push({q,r,x:0,y:0,h:Math.floor(Math.random()*60+20),e:Math.random()<0.2?Math.floor(Math.random()*200):0,g:Math.random()<0.1?Math.floor(Math.random()*100):0,b:null,u:null});
+                for(let q = 0; q < CONFIG.MAP_W; q++) {
+                    for(let r = 0; r < CONFIG.MAP_H; r++) {
+                        const noise = Math.sin(q * 0.2) * Math.cos(r * 0.2);
+                        this.grid.push({ q, r, x: 0, y: 0, h: Math.floor((noise + 1) * 30 + 10), e: Math.random() < 0.15 ? Math.floor(Math.random() * 200 + 50) : 0, g: Math.random() < 0.08 ? Math.floor(Math.random() * 100 + 20) : 0, b: null, u: null });
                     }
                 }
-                const c = this.get(10,10);
-                if(c) { c.b = {t:'base',n:'基地',hp:500}; this.base = c; }
+                const center = this.get(15, 15);
+                if(center) { center.b = { t: 'base', n: '基地', hp: 1000 }; this.base = center; }
             }
 
             setup() {
                 const rs = () => { this.canvas.width = this.canvas.parentElement.clientWidth; this.canvas.height = this.canvas.parentElement.clientHeight; };
                 window.addEventListener('resize', rs); rs();
-                let d=false,l={x:0,y:0};
-                this.canvas.addEventListener('mousedown',e=>{d=true;l={x:e.clientX,y:e.clientY}});
-                this.canvas.addEventListener('mousemove',e=>{if(d){this.camera.x+=e.clientX-l.x;this.camera.y+=e.clientY-l.y;l={x:e.clientX,y:e.clientY};}});
-                this.canvas.addEventListener('mouseup',()=>d=false);
-                this.canvas.addEventListener('wheel',e=>{e.preventDefault();this.camera.zoom*=e.deltaY>0?0.9:1.1;this.camera.zoom=Math.max(0.3,Math.min(3,this.camera.zoom));});
-                this.canvas.addEventListener('click',e=>this.onClick(e));
+                let d = false, l = { x: 0, y: 0 };
+                this.canvas.addEventListener('mousedown', e => { d = true; l = { x: e.clientX, y: e.clientY }; });
+                this.canvas.addEventListener('mousemove', e => { if(d) { this.camera.x += e.clientX - l.x; this.camera.y += e.clientY - l.y; l = { x: e.clientX, y: e.clientY }; } });
+                this.canvas.addEventListener('mouseup', () => d = false);
+                this.canvas.addEventListener('wheel', e => { e.preventDefault(); const f = e.deltaY > 0 ? 0.9 : 1.1; this.camera.zoom = Math.max(0.3, Math.min(3, this.camera.zoom * f)); });
+                this.canvas.addEventListener('click', e => this.onClick(e));
                 this.calcPos();
             }
 
-            calcPos() {
-                const h = Math.sqrt(3)*CONFIG.HEX_SIZE;
-                for(const c of this.grid) { c.x = CONFIG.HEX_SIZE*1.5*c.q; c.y = h*(c.r+c.q*0.5); }
-            }
+            calcPos() { const h = Math.sqrt(3) * CONFIG.HEX_SIZE; for(const c of this.grid) { c.x = CONFIG.HEX_SIZE * 1.5 * c.q; c.y = h * (c.r + c.q * 0.5); } }
+            get(q, r) { return this.grid.find(c => c.q === q && c.r === r); }
+            
+            toScreen(q, r) { const h = Math.sqrt(3) * CONFIG.HEX_SIZE; return { x: (CONFIG.HEX_SIZE * 1.5 * q) * this.camera.zoom + this.camera.x + this.canvas.width / 2, y: (h * (r + q * 0.5)) * this.camera.zoom + this.camera.y + this.canvas.height / 2 }; }
+            
+            toHex(sx, sy) { const x = (sx - this.camera.x - this.canvas.width / 2) / this.camera.zoom; const y = (sy - this.camera.y - this.canvas.height / 2) / this.camera.zoom; const h = Math.sqrt(3) * CONFIG.HEX_SIZE; return { q: Math.round((2 / 3) * x / CONFIG.HEX_SIZE), r: Math.round((-1 / 3) * x / CONFIG.HEX_SIZE + y / h) }; }
 
-            get(q,r) { return this.grid.find(c=>c.q===q&&c.r===r); }
-
-            toScreen(q,r) {
-                const h = Math.sqrt(3)*CONFIG.HEX_SIZE;
-                return { x: (CONFIG.HEX_SIZE*1.5*q)*this.camera.zoom+this.camera.x+this.canvas.width/2, y: (h*(r+q*0.5))*this.camera.zoom+this.camera.y+this.canvas.height/2 };
-            }
-
-            toHex(sx,sy) {
-                const x = (sx-this.camera.x-this.canvas.width/2)/this.camera.zoom;
-                const y = (sy-this.camera.y-this.canvas.height/2)/this.camera.zoom;
-                const h = Math.sqrt(3)*CONFIG.HEX_SIZE;
-                return { q: Math.round((2/3)*x/CONFIG.HEX_SIZE), r: Math.round((-1/3)*x/CONFIG.HEX_SIZE+y/h) };
-            }
-
-            setBuild(t) { this.mode = 'build:'+t; }
-            cancelBuild() { this.mode = null; }
-            toggleMove() { this.mode = this.mode==='move'?null:'move'; }
-            toggleAttack() { this.mode = this.mode==='attack'?null:'attack'; }
-
-            spawnUnit() {
-                if(this.energy<30 || this.units.length>=CONFIG.MAX_UNITS) return;
-                const s = this.base;
-                this.energy -= 30;
-                const u = { id: Date.now(), t:'player', q:s.q, r:s.r, hp:100, maxHp:100, atk:10*(this.tech.atk?1.2:1), def:5*(this.tech.def?1.2:1), move:2+(this.tech.spd?1:0) };
-                this.units.push(u); this.get(u.q,u.r).u = u;
-                this.log('单位已生成');
+            build(t) { this.mode = 'build:' + t; this.log('建造: ' + BUILD[t].n); }
+            spawn(t) {
+                const u = UNITS[t];
+                if(this.energy < u.cost || this.pop >= this.maxPop) { this.log(this.pop >= this.maxPop ? '人口不足' : '能量不足'); return; }
+                this.energy -= u.cost; this.pop++;
+                const unit = { id: Date.now(), type: t, t: 'player', q: this.base.q, r: this.base.r, ...u, maxHp: u.hp, carrying: 0 };
+                this.units.push(unit); this.get(unit.q, unit.r).u = unit;
+                this.log(u.n + '已训练');
             }
 
             spawnEnemy() {
-                const edge = this.grid.filter(c=>c.q===0||c.q===CONFIG.MAP_W-1||c.r===0||c.r===CONFIG.MAP_H-1);
-                const s = edge[Math.floor(Math.random()*edge.length)];
-                if(!s||s.b?.t==='base') return;
-                const hp = 50 + Math.floor(this.tick/100)*5;
-                this.enemies.push({ id: Date.now(), t:'enemy', q:s.q, r:s.r, hp, maxHp:hp, atk:8+Math.floor(this.tick/100), def:2, move:2 });
-            }
-
-            unlockTech(t,c) {
-                if(this.tech[t] || this.gold<c) return;
-                this.gold -= c; this.tech[t] = true;
-                document.getElementById('tech'+t.charAt(0).toUpperCase()+t.slice(1))?.classList.add('unlocked');
-                this.log('科技: '+t);
+                const edges = this.grid.filter(c => c.q === 0 || c.q === CONFIG.MAP_W - 1 || c.r === 0 || c.r === CONFIG.MAP_H - 1);
+                const s = edges[Math.floor(Math.random() * edges.length)];
+                if(!s || s.b?.t === 'base') return;
+                const bonus = this.wave * 5;
+                const types = ['warrior', 'archer', 'tank'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                const base = UNITS[type];
+                this.enemies.push({ id: Date.now(), type: type, t: 'enemy', q: s.q, r: s.r, atk: base.atk + bonus, def: base.def, hp: base.hp + bonus * 2, maxHp: base.hp + bonus * 2, move: base.move, range: base.range });
             }
 
             onClick(e) {
                 const r = this.canvas.getBoundingClientRect();
-                const p = this.toHex(e.clientX-r.left, e.clientY-r.top);
+                const p = this.toHex(e.clientX - r.left, e.clientY - r.top);
                 const c = this.get(p.q, p.r);
                 if(!c) return;
 
                 if(this.mode?.startsWith('build:')) {
                     const t = this.mode.split(':')[1];
                     const b = BUILD[t];
-                    if(this.energy>=b.c && !c.b) { this.energy -= b.c; c.b = {t,...b,hp:100}; this.log('建造: '+b.n); }
-                    this.mode = null; return;
-                }
-
-                if(this.mode==='move' && this.selected) {
-                    const u = this.selected;
-                    const dist = (Math.abs(u.q-c.q)+Math.abs(u.r-c.r))/2;
-                    if(dist<=u.move && !c.u) { this.get(u.q,u.r).u = null; u.q = c.q; u.r = c.r; c.u = u; }
-                    this.mode = null; return;
-                }
-
-                if(this.mode==='attack' && this.selected) {
-                    const u = this.selected;
-                    const tgt = c.u || this.enemies.find(e=>e.q===c.q&&e.r===c.r);
-                    if(tgt && tgt.t!==u.t) {
-                        const dist = (Math.abs(u.q-tgt.q)+Math.abs(u.r-tgt.r))/2;
-                        if(dist<=1) { this.fight(u,tgt); }
+                    if(this.energy >= b.c && !c.b) {
+                        this.energy -= b.c; c.b = { t, ...b, hp: b.hp || 100 };
+                        this.stats.builds++; this.score += 10;
+                        this.log('建造: ' + b.n);
                     }
                     this.mode = null; return;
                 }
 
-                if(c.u?.t==='player') this.selected = c.u;
-                this.updateDetail(c);
-            }
-
-            fight(a,d) {
-                const dmg = Math.max(1, Math.floor(a.atk - d.def));
-                d.hp -= dmg;
-                if(d.hp<=0) {
-                    if(d.t==='enemy') { this.enemies = this.enemies.filter(e=>e!==d); this.gold += 10; this.log('击杀 +10G'); }
-                    else { this.units = this.units.filter(u=>u!==d); this.get(d.q,d.r).u = null; this.log('单位阵亡'); }
-                }
-            }
-
-            update() {
-                this.tick++;
-                for(const c of this.grid) {
-                    if(c.b?.e && this.energy<this.maxE) this.energy = Math.min(this.maxE, this.energy + c.b.e);
-                    if(c.b?.g) this.gold += c.b.g;
-                }
-
-                if(this.tick % CONFIG.ENEMY_RATE === 0) this.spawnEnemy();
-
-                for(const e of this.enemies) {
-                    let tgt = null, best = Infinity;
-                    for(const u of this.units) { const d = (Math.abs(e.q-u.q)+Math.abs(e.r-u.r))/2; if(d<best) { best=d; tgt=u; } }
-                    if(this.base) { const d = (Math.abs(e.q-this.base.q)+Math.abs(e.r-this.base.r))/2; if(d<best) tgt = this.base; }
-                    
-                    if(tgt) {
-                        const dist = (Math.abs(e.q-tgt.q)+Math.abs(e.r-tgt.r))/2;
-                        if(dist<=1) { this.fight(e,tgt); }
-                        else {
-                            const dx = Math.sign(tgt.q-e.q), dy = Math.sign(tgt.r-e.r);
-                            const n = this.get(e.q+dx, e.r+dy);
-                            if(n && !n.u && !n.b) { e.q += dx; e.r += dy; }
-                        }
-                    }
-                }
-
-                this.updateUI();
-            }
-
-            updateUI() {
-                document.getElementById('resE').textContent = Math.floor(this.energy)+'/'+this.maxE;
-                document.getElementById('barE').style.width = (this.energy/this.maxE*100)+'%';
-                document.getElementById('resG').textContent = Math.floor(this.gold);
-                document.getElementById('resU').textContent = this.units.length+'/'+CONFIG.MAX_UNITS;
-                document.getElementById('tickInfo').textContent = this.tick;
-                document.getElementById('enemyAlert').style.display = this.enemies.length>0?'flex':'none';
-                document.getElementById('enemyCount').textContent = this.enemies.length;
-
-                const list = document.getElementById('unitList');
-                let html = '';
-                for(const u of this.units) html += `<div style="padding:3px; margin:2px 0; background:${u===this.selected?'#e94560':'rgba(255,255,255,0.1)'}; border-radius:3px; cursor:pointer; font-size:9px;" onclick="game.selected=game.units.find(x=>x.id===${u.id})">友 #${u.id.toString().slice(-4)} HP:${u.hp}</div>`;
-                for(const e of this.enemies) html += `<div style="padding:3px; margin:2px 0; background:rgba(244,67,54,0.3); border-radius:3px; font-size:9px;">敌 #${e.id.toString().slice(-4)} HP:${e.hp}</div>`;
-                list.innerHTML = html || '无单位';
+                if(c.u?.t === 'player') { this.selected = c.u; this.updateDetail(c); }
+                else { this.updateDetail(c); }
             }
 
             updateDetail(c) {
@@ -295,80 +184,91 @@
                 if(c.e) h += `<div class="stat-row"><span>能量</span><span>${c.e}</span></div>`;
                 if(c.g) h += `<div class="stat-row"><span>黄金</span><span>${c.g}</span></div>`;
                 if(c.b) h += `<div class="stat-row"><span>建筑</span><span>${c.b.n}</span></div>`;
-                if(c.u) h += `<div class="stat-row"><span>单位</span><span>HP:${c.u.hp}</span></div>`;
+                if(c.u) h += `<div class="stat-row"><span>单位</span><span>${UNITS[c.u.type].n} HP:${c.u.hp}</span></div>`;
                 document.getElementById('hexDetail').innerHTML = h;
+            }
+
+            fight(a, d) {
+                const dmg = Math.max(1, a.atk - d.def);
+                d.hp -= dmg;
+                if(d.hp <= 0) {
+                    if(d.t === 'enemy') { this.enemies = this.enemies.filter(e => e !== d); this.gold += 10 + this.wave; this.score += 50; this.stats.kills++; this.log('击杀 +' + (10 + this.wave) + 'G'); }
+                    else { this.units = this.units.filter(u => u !== d); this.get(d.q, d.r).u = null; this.pop--; this.log('单位阵亡'); }
+                }
+            }
+
+            update() {
+                this.tick++;
+                for(const c of this.grid) {
+                    if(c.b?.e && this.energy < this.maxE) this.energy = Math.min(this.maxE, this.energy + c.b.e);
+                    if(c.b?.g) this.gold += c.b.g;
+                    if(c.b?.pop) this.maxPop = 10 + this.grid.filter(x => x.b?.pop).reduce((a, x) => a + x.b.pop, 0);
+                }
+
+                if(this.tick % CONFIG.ENEMY_RATE === 0) this.spawnEnemy();
+                if(this.tick % 300 === 0) { this.wave++; this.log('第' + this.wave + '波进攻!'); }
+
+                for(const e of this.enemies) {
+                    let tgt = null, best = Infinity;
+                    for(const u of this.units) { const dist = (Math.abs(e.q - u.q) + Math.abs(e.r - u.r)) / 2; if(dist < best) { best = dist; tgt = u; } }
+                    if(this.base) { const dist = (Math.abs(e.q - this.base.q) + Math.abs(e.r - this.base.r)) / 2; if(dist < best) tgt = this.base; }
+                    if(tgt) {
+                        const dist = (Math.abs(e.q - tgt.q) + Math.abs(e.r - tgt.r)) / 2;
+                        if(dist <= 1) { this.fight(e, tgt); }
+                        else { const dx = Math.sign(tgt.q - e.q), dy = Math.sign(tgt.r - e.r); const n = this.get(e.q + dx, e.r + dy); if(n && !n.u && !n.b?.block) { e.q += dx; e.r += dy; } }
+                    }
+                }
+
+                for(const u of this.units) {
+                    if(u.carrying > 0 && u.q === this.base.q && u.r === this.base.r) {
+                        this.energy = Math.min(this.maxE, this.energy + u.carrying);
+                        u.carrying = 0;
+                    }
+                }
+
+                document.getElementById('resE').textContent = Math.floor(this.energy) + '/' + this.maxE;
+                document.getElementById('resG').textContent = Math.floor(this.gold);
+                document.getElementById('resP').textContent = this.pop + '/' + this.maxPop;
+                document.getElementById('resS').textContent = this.score;
+                document.getElementById('tickInfo').textContent = this.tick;
+                document.getElementById('waveInfo').textContent = this.wave;
+                document.getElementById('enemyAlert').style.display = this.enemies.length > 0 ? 'flex' : 'none';
+                document.getElementById('enemyCount').textContent = this.enemies.length;
+
+                let html = '';
+                for(const u of this.units) html += `<div style="padding:3px; margin:2px 0; background:${u === this.selected ? '#e94560' : 'rgba(255,255,255,0.1)'}; border-radius:3px; cursor:pointer; font-size:9px;" onclick="game.selected=game.units.find(x=>x.id===${u.id}); game.updateDetail(game.get(${u.q},${u.r}));">${UNITS[u.type].n} #${u.id.toString().slice(-4)} HP:${u.hp}</div>`;
+                document.getElementById('unitList').innerHTML = html || '无单位';
             }
 
             draw() {
                 this.ctx.fillStyle = '#0a0a15';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
                 for(const c of this.grid) {
                     const p = this.toScreen(c.q, c.r);
                     const s = CONFIG.HEX_SIZE * this.camera.zoom;
-                    if(p.x<-s || p.x>this.canvas.width+s || p.y<-s || p.y>this.canvas.height+s) continue;
-
+                    if(p.x < -s || p.x > this.canvas.width + s || p.y < -s || p.y > this.canvas.height + s) continue;
                     this.ctx.beginPath();
-                    for(let i=0; i<6; i++) {
-                        const a = (Math.PI/3)*i;
-                        const x = p.x + s*Math.cos(a);
-                        const y = p.y + s*Math.sin(a);
-                        if(i===0) this.ctx.moveTo(x,y); else this.ctx.lineTo(x,y);
-                    }
+                    for(let i = 0; i < 6; i++) { const a = (Math.PI / 3) * i; const x = p.x + s * Math.cos(a); const y = p.y + s * Math.sin(a); if(i === 0) this.ctx.moveTo(x, y); else this.ctx.lineTo(x, y); }
                     this.ctx.closePath();
-                    this.ctx.fillStyle = `rgb(${30+c.h},${50+c.h/2},${30+c.h/3})`;
+                    this.ctx.fillStyle = `rgb(${30 + c.h},${50 + c.h / 2},${30 + c.h / 3})`;
                     this.ctx.fill();
-                    if(c.e) { this.ctx.fillStyle = `rgba(255,215,0,${0.2+c.e/500})`; this.ctx.fill(); }
+                    if(c.e) { this.ctx.fillStyle = `rgba(255,215,0,${0.2 + c.e / 500})`; this.ctx.fill(); }
                     if(c.b) {
-                        const colors = { base: '#e94560', mineE: '#fd0', mineG: '#fa0', tower: '#f44', barracks: '#4a9' };
+                        const colors = { base: '#e94560', mineE: '#fd0', mineG: '#fa0', tower: '#f44', barracks: '#4a9', house: '#0aa', wall: '#888' };
                         this.ctx.fillStyle = colors[c.b.t] || '#fff';
-                        this.ctx.beginPath(); this.ctx.arc(p.x, p.y, s*0.5, 0, Math.PI*2); this.ctx.fill();
+                        this.ctx.beginPath(); this.ctx.arc(p.x, p.y, s * 0.5, 0, Math.PI * 2); this.ctx.fill();
                     }
                     this.ctx.strokeStyle = '#333'; this.ctx.lineWidth = 1; this.ctx.stroke();
                 }
-
-                for(const u of this.units) {
-                    const p = this.toScreen(u.q, u.r);
-                    const s = CONFIG.HEX_SIZE * this.camera.zoom * 0.4;
-                    this.ctx.fillStyle = u===this.selected ? '#0f0' : '#4a9';
-                    this.ctx.beginPath(); this.ctx.arc(p.x, p.y, s, 0, Math.PI*2); this.ctx.fill();
-                }
-
-                for(const e of this.enemies) {
-                    const p = this.toScreen(e.q, e.r);
-                    const s = CONFIG.HEX_SIZE * this.camera.zoom * 0.4;
-                    this.ctx.fillStyle = '#f44';
-                    this.ctx.beginPath(); this.ctx.arc(p.x, p.y, s, 0, Math.PI*2); this.ctx.fill();
-                }
+                for(const u of this.units) { const p = this.toScreen(u.q, u.r); const s = CONFIG.HEX_SIZE * this.camera.zoom * 0.4; this.ctx.fillStyle = u === this.selected ? '#0f0' : '#4a9'; this.ctx.beginPath(); this.ctx.arc(p.x, p.y, s, 0, Math.PI * 2); this.ctx.fill(); }
+                for(const e of this.enemies) { const p = this.toScreen(e.q, e.r); const s = CONFIG.HEX_SIZE * this.camera.zoom * 0.4; this.ctx.fillStyle = '#f44'; this.ctx.beginPath(); this.ctx.arc(p.x, p.y, s, 0, Math.PI * 2); this.ctx.fill(); }
             }
 
-            start() {
-                setInterval(()=>{for(let i=0;i<this.speed;i++)this.update();}, CONFIG.TICK_RATE);
-                const lp = ()=>{this.draw(); requestAnimationFrame(lp);};
-                lp();
-            }
-
-            log(m) {
-                const l = document.getElementById('log');
-                const e = document.createElement('div');
-                e.style.cssText = 'padding:1px 0; border-bottom:1px solid #1a1a2e;';
-                e.textContent = `[${new Date().toLocaleTimeString()}] ${m}`;
-                l.insertBefore(e, l.firstChild);
-                if(l.children.length>15) l.lastChild.remove();
-            }
-
-            save() { localStorage.setItem('cc3', JSON.stringify({tick:this.tick, energy:this.energy, gold:this.gold, units:this.units, enemies:this.enemies, grid:this.grid.map(c=>({q:c.q,r:c.r,h:c.h,e:c.e,g:c.g,b:c.b}))})); this.log('已保存'); }
-            load() {
-                const d = localStorage.getItem('cc3');
-                if(!d) return;
-                const data = JSON.parse(d);
-                this.tick = data.tick || 0; this.energy = data.energy || 0; this.gold = data.gold || 0;
-                this.units = data.units || []; this.enemies = data.enemies || [];
-                for(const c of data.grid || []) { const cell = this.get(c.q, c.r); if(cell) { cell.h = c.h; cell.e = c.e; cell.g = c.g; cell.b = c.b; } }
-                this.base = this.grid.find(c=>c.b?.t==='base');
-                this.log('已加载');
-            }
-            reset() { if(confirm('重置?')) { this.reset(); this.log('已重置'); } }
+            start() { setInterval(() => { for(let i = 0; i < this.speed; i++) this.update(); }, CONFIG.TICK_RATE); const lp = () => { this.draw(); requestAnimationFrame(lp); }; lp(); }
+            log(m) { const l = document.getElementById('log'); const e = document.createElement('div'); e.style.cssText = 'padding:1px 0; border-bottom:1px solid #1a1a2e;'; e.textContent = `[${new Date().toLocaleTimeString()}] ${m}`; l.insertBefore(e, l.firstChild); if(l.children.length > 15) l.lastChild.remove(); }
+            save() { localStorage.setItem('cc4', JSON.stringify({ tick: this.tick, wave: this.wave, energy: this.energy, gold: this.gold, score: this.score, units: this.units, enemies: this.enemies, grid: this.grid.map(c => ({ q: c.q, r: c.r, h: c.h, e: c.e, g: c.g, b: c.b })), stats: this.stats })); this.log('已保存'); }
+            load() { const d = localStorage.getItem('cc4'); if(!d) return; const data = JSON.parse(d); this.tick = data.tick || 0; this.wave = data.wave || 1; this.energy = data.energy || 0; this.gold = data.gold || 0; this.score = data.score || 0; this.units = data.units || []; this.enemies = data.enemies || []; this.stats = data.stats || { kills: 0, builds: 0 }; for(const c of data.grid || []) { const cell = this.get(c.q, c.r); if(cell) { cell.h = c.h; cell.e = c.e; cell.g = c.g; cell.b = c.b; } } this.base = this.grid.find(c => c.b?.t === 'base'); this.log('已加载'); }
+            reset() { if(confirm('重置游戏?')) { this.reset(); this.log('已重置'); } }
         }
 
         const game = new Game();
